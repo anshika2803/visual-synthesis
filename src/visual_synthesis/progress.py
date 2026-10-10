@@ -10,6 +10,8 @@ instead, so batch logs stay readable.
 """
 
 import logging
+import secrets
+import string
 import time
 from contextlib import ExitStack
 from threading import Lock
@@ -21,11 +23,14 @@ log = logging.getLogger(__name__)
 
 
 class Progress:
-    def __init__(self, total, description, unit="item", log_every=0):
+    def __init__(self, total, description, unit="item", log_every=0, model_id=None):
         self.total = total
         self.description = description
         self.unit = unit
         self.log_every = log_every
+        self.model_id = model_id
+        # Auto-generate a 4-letter unique tag; user cannot supply it.
+        self.tag = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
         self.done = 0
         self.fields = {}
         self._logged = 0
@@ -37,8 +42,16 @@ class Progress:
     def __enter__(self):
         # Route log records through tqdm so they print above the bar instead of through it.
         self._stack.enter_context(logging_redirect_tqdm())
+        desc = self.description
+        parts = []
+        if self.model_id:
+            parts.append(self.model_id)
+        if self.tag:
+            parts.append(self.tag)
+        if parts:
+            desc = f"{self.description} [{', '.join(parts)}]"
         self.bar = self._stack.enter_context(
-            tqdm(total=self.total, desc=self.description, unit=self.unit, disable=None, dynamic_ncols=True)
+            tqdm(total=self.total, desc=desc, unit=self.unit, disable=None, dynamic_ncols=True)
         )
         return self
 
@@ -60,4 +73,12 @@ class Progress:
                 self._logged = self.done
                 rate = self.done / max(time.perf_counter() - self._started, 1e-9)
                 extra = "".join(f", {key}={value}" for key, value in shown.items())
-                log.info("%s %d/%d (%.2f/s%s)", self.description, self.done, self.total, rate, extra)
+                desc = self.description
+                parts = []
+                if self.model_id:
+                    parts.append(self.model_id)
+                if self.tag:
+                    parts.append(self.tag)
+                if parts:
+                    desc = f"{self.description} [{', '.join(parts)}]"
+                log.info("%s %d/%d (%.2f/s%s)", desc, self.done, self.total, rate, extra)

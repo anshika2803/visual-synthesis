@@ -204,7 +204,7 @@ def run(cfg, run, source=None):
         return completed, failures
 
     try:
-        with Progress(len(pending), "generate", "img", settings["log_every"]) as progress:
+        with Progress(len(pending), "generate", "img", settings["log_every"], model_id=model["id"]) as progress:
             if in_processes:
                 generated, summary["failed"] = generate_in_processes()
             elif worker_count:

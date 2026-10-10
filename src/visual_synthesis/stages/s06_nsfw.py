@@ -131,7 +131,7 @@ def run(cfg, run, source=None):
 
     try:
         checked = errors = 0
-        with Progress(len(pending), "nsfw", "img", settings["log_every"]) as progress:
+        with Progress(len(pending), "nsfw", "img", settings["log_every"], model_id=detector["id"]) as progress:
             if worker_count:
                 assignments = [pending[index::worker_count] for index in range(worker_count)]
                 with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="nsfw") as executor:
