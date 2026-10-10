@@ -1,21 +1,71 @@
-# Model weights and local caches
-models/
-cache/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Raw and processed datasets
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# --- pipeline output ---------------------------------------------------------
+# Run directories and weights are the pipeline's data: they are versioned by the
+# run-directory scheme, not by git, and can be tens of GB.
 data/raw/
-data/processed/
+data/runs/
+data/cache/
+models/
+logs/
 
-# Generated images
-results/images/
-results/test.png
+# Results: exports are derived data, but the CSVs kept for reference are small.
+results/runs/
+results/serving/
+results/tables/*
+!results/tables/.gitkeep
 
-# Temporary/editor files
+# --- tooling caches ----------------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# --- secrets -----------------------------------------------------------------
+.env
+*.local
+
+# --- cluster -----------------------------------------------------------------
+slurm/jobs/
+*.sbatch
+squeue*.out
+nohup.out
+
+# --- editors and OS ----------------------------------------------------------
+.vscode/
+.idea/
 *.swp
 *.swo
-__pycache__/
-*.pyc
-
-# Local environment/config files
-.env
-results/pilot_images/
+*~
+.DS_Store
+Thumbs.db

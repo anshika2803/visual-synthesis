@@ -1,0 +1,19 @@
+# Conda environment for Linux / HPC.
+#
+#   conda env create -f conda/environment.yml
+#   conda activate visual-synthesis
+#
+#   pip install -e ".[all]"        # from the repository root
+#
+# conda installs the compiled stack (torch + CUDA); pip then installs the rest
+# and the project itself. Match pytorch-cuda to your cluster's driver (`nvidia-smi`).
+name: visual-synthesis
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pytorch>=2.3
+  - pytorch-cuda=12.1
+  - pip

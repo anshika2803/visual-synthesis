@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Cluster override, layered on top of config/pipeline.json:",
+    "  visual-synthesis run generate -c config/pipeline.json -c config/pipeline.hpc.json",
+    "Only the keys that differ need to appear here."
+  ],
+
+  "logging": { "keep_runs": 100 },
+
+  "run": { "mode": "full" },
+
+  "download": { "models": ["sd-turbo", "sd-xl"] },
+
+  "generate": { "log_every": 25 },
+
+  "nsfw": { "max_error_rate": 0.01 },
+
+  "slurm": {
+    "log_dir": "slurm/jobs",
+    "set_env": {
+      "HF_HOME": "data/cache/huggingface",
+      "TOKENIZERS_PARALLELISM": "false",
+      "OMP_NUM_THREADS": "8"
+    }
+  },
+
+  "serve": { "host": "0.0.0.0" }
+}

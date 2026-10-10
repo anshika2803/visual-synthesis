@@ -1,0 +1,14 @@
+# Data, weights, logs and results are mounted at run time, never copied into the image.
+.git
+data
+models
+logs
+results
+slurm/jobs
+.venv
+__pycache__
+*.pyc
+*.egg-info
+.pytest_cache
+.ruff_cache
+.env
