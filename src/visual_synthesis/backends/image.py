@@ -19,10 +19,17 @@ import logging
 import random
 import time
 from pathlib import Path
+from threading import Lock
 
 from visual_synthesis.io import safe_name
 
 log = logging.getLogger(__name__)
+
+# Diffusers uses Accelerate's process-global ``init_empty_weights`` context while
+# loading with low_cpu_mem_usage=True. Concurrent from_pretrained calls can leave
+# a component on the meta device (notably on MPS), so pipeline construction must
+# be serialized. Inference itself remains parallel across backend instances.
+_PIPELINE_LOAD_LOCK = Lock()
 
 # models.<id>.family -> diffusers pipeline class
 PIPELINES = {
@@ -122,7 +129,10 @@ class DiffusersBackend:
             options["safety_checker"] = None
 
         started = time.perf_counter()
-        pipe = getattr(diffusers, PIPELINES[model["family"]]).from_pretrained(source, **options).to(device)
+        # See _PIPELINE_LOAD_LOCK above. Keep the critical section to loading;
+        # completed pipelines can still generate concurrently in worker threads.
+        with _PIPELINE_LOAD_LOCK:
+            pipe = getattr(diffusers, PIPELINES[model["family"]]).from_pretrained(source, **options).to(device)
         if not model["safety_checker"] and getattr(pipe, "safety_checker", None) is not None:
             pipe.safety_checker = None
         if model["enable_attention_slicing"]:

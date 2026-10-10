@@ -91,6 +91,8 @@ DEFAULTS = {
     },
     "generate": {
         "model": "sd-turbo",
+        # Separate copies of the model that may generate different prompts concurrently.
+        "workers": 1,
         "batch_size": 1,
         # None = use the model's own value
         "num_inference_steps": None,
@@ -108,6 +110,8 @@ DEFAULTS = {
     },
     "nsfw": {
         "detector": "nudenet",
+        # Separate copies of the detector that may check different images concurrently.
+        "workers": 1,
         "threshold": None,  # None = use the detector's own threshold
         "extensions": [".png", ".jpg", ".jpeg", ".webp"],
         "recursive": True,
@@ -414,6 +418,11 @@ def validate(cfg):
     if detector not in DETECTOR_OFF and detector not in cfg["detectors"]:
         problems.append(f"nsfw.detector={detector!r} is not defined under 'detectors' "
                         f"(have: {sorted(cfg['detectors'])})")
+
+    for stage in ("generate", "nsfw"):
+        workers = cfg[stage]["workers"]
+        if isinstance(workers, bool) or not isinstance(workers, int) or workers < 1:
+            problems.append(f"{stage}.workers={workers!r} must be a positive integer")
 
     for kind in ("datasets", "models", "detectors"):
         for name in cfg["download"][kind]:

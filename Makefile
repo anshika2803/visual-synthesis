@@ -10,6 +10,7 @@ MODEL     ?= sd-turbo
 DETECTOR  ?= nudenet
 STAGE     ?= generate
 LIMIT     ?=
+WORKERS   ?= 1
 RUN_NAME  ?=
 CONFIG    ?=
 KEEP      ?= 20
@@ -69,15 +70,15 @@ unify:  ## Merge the standardized datasets
 dedup:  ## Deduplicate the unified table
 	$(VS) postprocess $(FLAGS)
 
-generate:  ## Generate images: make generate MODEL=sd-xl LIMIT=100
-	$(VS) generate --model $(MODEL) $(FLAGS)
+generate:  ## Generate images: make generate MODEL=sd-xl LIMIT=100 WORKERS=3
+	$(VS) generate --model $(MODEL) --workers $(WORKERS) $(FLAGS)
 
-nsfw:  ## Detect NSFW content: make nsfw DETECTOR=nudenet
-	$(VS) nsfw --detector $(DETECTOR) $(FLAGS)
+nsfw:  ## Detect NSFW content: make nsfw DETECTOR=nudenet WORKERS=5
+	$(VS) nsfw --detector $(DETECTOR) --workers $(WORKERS) $(FLAGS)
 
 pilot:  ## Generate a small stratified pilot: make pilot LIMIT=60
 	$(VS) generate --model $(MODEL) --sample stratified --stratify-by standard_category \
-	  --limit $(or $(LIMIT),60) --run-name $(or $(RUN_NAME),pilot)
+	  --limit $(or $(LIMIT),60) --run-name $(or $(RUN_NAME),pilot) --workers $(WORKERS)
 
 dry-run:  ## Show what the whole chain would do, without writing
 	$(VS) run all --dry-run $(FLAGS)

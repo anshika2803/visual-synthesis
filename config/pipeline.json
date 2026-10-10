@@ -193,6 +193,7 @@
 
   "generate": {
     "model": "sd-turbo",
+    "workers": 1,
     "batch_size": 1,
     "save_format": "png",
     "output_name": "generations.parquet",
@@ -202,6 +203,7 @@
 
   "nsfw": {
     "detector": "nudenet",
+    "workers": 1,
     "threshold": null,
     "output_name": "detections.parquet",
     "summary_name": "summary.parquet",

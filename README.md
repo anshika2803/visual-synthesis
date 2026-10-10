@@ -60,6 +60,12 @@ visual-synthesis models     # configured datasets, models and detectors
 visual-synthesis run unify            # by name, slug (s03_unify) or number (3)
 visual-synthesis unify                # shortcut
 visual-synthesis run all --from standardize --to nsfw --run-name study1
+# Load three copies of sd-turbo and generate three prompts concurrently.
+visual-synthesis generate --workers 3
+# Load five detector copies and check images concurrently.
+visual-synthesis nsfw --workers 5
+# Set distinct levels when both stages are in one chain.
+visual-synthesis run all --generate-workers 3 --nsfw-workers 5
 ```
 
 Flags shared by every stage:
@@ -73,9 +79,16 @@ Flags shared by every stage:
 | `-i, --input PATH` | read this file/folder instead of the previous stage's output |
 | `-n, --limit N`, `--sample`, `--stratify-by`, `--seed` | which rows to process |
 | `-m, --model ID`, `--detector ID`, `--dataset ID` | which model / detector / dataset |
+| `--workers N` | concurrent model/detector copies for the `generate` or `nsfw` stage (default: 1) |
+| `--generate-workers N`, `--nsfw-workers N` | set the two levels independently, especially with `run all` |
 | `--overwrite` | redo work a resumed run already finished |
 | `--dry-run` | show what would happen, write nothing |
 | `--set KEY=VALUE` | override any config value, e.g. `--set generate.batch_size=4` |
+
+Each worker is a separate loaded copy of the selected model or detector. Start
+with the default of one and choose a value that fits the available GPU/CPU memory.
+On Apple Metal (MPS), Diffusers generation is safely limited to one worker;
+use a CUDA device to run multiple diffusion-model copies concurrently.
 
 ### Run folders: nothing is overwritten
 

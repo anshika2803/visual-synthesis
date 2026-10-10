@@ -21,8 +21,10 @@ Incremental: an image that already has a successful record is skipped.
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import Lock
 
 import pandas as pd
 
@@ -68,46 +70,69 @@ def run(cfg, run, source=None):
         "rows_out": 0,
         "rows_skipped": len(images) - len(pending),
         "detector": detector["id"],
+        "workers": settings["workers"],
         "threshold": threshold,
     }
     if cfg["run"]["dry_run"]:
         return {**summary, "planned": len(pending)}
 
-    backend = build_detector(detector, cfg["paths"]["models"])
     started = time.perf_counter()
-    errors = 0
-    try:
-        if pending:
+    records_lock = Lock()
+
+    def detect_images(assigned_images):
+        """Check an image group with one private detector instance."""
+        backend = build_detector(detector, cfg["paths"]["models"])
+        errors = 0
+        try:
             backend.load()
-        for count, path in enumerate(pending, start=1):
-            record = {
-                "image_id": path.stem,
-                "image_path": str(path),
-                "detector_id": detector["id"],
-                "threshold": threshold,
-                "detected_at": datetime.now(UTC).isoformat(),
-                "run_id": run.id,
-                **context.get(path.stem, {}),
-            }
-            try:
-                scores = backend.detect(path)
-                record.update(
-                    status="success",
-                    flagged=is_flagged(scores, detector, settings["threshold"]),
-                    max_score=round(max(scores.values(), default=0.0), 6),
-                    labels=sorted(scores, key=scores.get, reverse=True),
-                    per_class=scores,
-                    error=None,
-                )
-            except Exception as exc:  # one unreadable image must not stop the run
-                log.error("detection failed for %s: %s", path.name, exc)
-                errors += 1
-                record.update(status="error", flagged=False, max_score=0.0, labels=[], per_class={}, error=str(exc))
-            append_jsonl(records_file, record)
-            if count % settings["log_every"] == 0:
-                log.info("checked %d/%d images", count, len(pending))
+            for path in assigned_images:
+                record = {
+                    "image_id": path.stem,
+                    "image_path": str(path),
+                    "detector_id": detector["id"],
+                    "threshold": threshold,
+                    "detected_at": datetime.now(UTC).isoformat(),
+                    "run_id": run.id,
+                    **context.get(path.stem, {}),
+                }
+                try:
+                    scores = backend.detect(path)
+                    record.update(
+                        status="success",
+                        flagged=is_flagged(scores, detector, settings["threshold"]),
+                        max_score=round(max(scores.values(), default=0.0), 6),
+                        labels=sorted(scores, key=scores.get, reverse=True),
+                        per_class=scores,
+                        error=None,
+                    )
+                except Exception as exc:  # one unreadable image must not stop the run
+                    log.error("detection failed for %s: %s", path.name, exc)
+                    errors += 1
+                    record.update(
+                        status="error", flagged=False, max_score=0.0, labels=[], per_class={}, error=str(exc)
+                    )
+                # See generate: a lock prevents interleaved JSONL writes while
+                # retaining an on-disk record for every completed image.
+                with records_lock:
+                    append_jsonl(records_file, record)
+        finally:
+            backend.unload()
+        return len(assigned_images), errors
+
+    try:
+        worker_count = min(settings["workers"], len(pending))
+        checked = errors = 0
+        if worker_count:
+            assignments = [pending[index::worker_count] for index in range(worker_count)]
+            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="nsfw") as executor:
+                futures = [executor.submit(detect_images, assignment) for assignment in assignments]
+                for future in as_completed(futures):
+                    completed, worker_errors = future.result()
+                    checked += completed
+                    errors += worker_errors
+                    if checked % settings["log_every"] == 0 or checked == len(pending):
+                        log.info("checked %d/%d images", checked, len(pending))
     finally:
-        backend.unload()
         table = write_detection_tables(records_file, run, settings, detector["id"])
 
     error_rate = errors / len(pending) if pending else 0.0

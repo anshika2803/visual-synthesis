@@ -16,9 +16,12 @@ same ``--run-name``.
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
 import pandas as pd
 
+from visual_synthesis.backends.device import pick_device
 from visual_synthesis.backends.image import build_image_backend, save_image
 from visual_synthesis.config import get_model, stage_setting
 from visual_synthesis.io import (
@@ -41,6 +44,26 @@ NEEDS_GPU = True
 
 # Copied from the prompt table onto every generation record.
 PROMPT_COLUMNS = ["source_dataset", "standard_category", "risk_level", "benchmark_level", "transformation"]
+
+
+def effective_worker_count(model, requested_workers, work_items):
+    """The number of backend instances that can safely run this workload.
+
+    MPS permits a single Diffusers command stream reliably, but concurrent
+    pipelines can abort the Python process in Metal. CUDA and CPU backends may
+    use the requested number of workers.
+    """
+    workers = min(requested_workers, len(work_items))
+    if workers > 1 and model["backend"] == "diffusers":
+        device = pick_device(model["device"], model["device_index"])
+        if device == "mps":
+            log.warning(
+                "MPS does not safely support concurrent Diffusers pipelines; "
+                "using one generation worker instead of %d. Use CUDA to run multiple models in parallel.",
+                workers,
+            )
+            return 1
+    return workers
 
 
 def run(cfg, run, source=None):
@@ -66,6 +89,8 @@ def run(cfg, run, source=None):
         for position, row in enumerate(prompts.to_dict("records"))
         if str(row["prompt_id"]) not in done
     ]
+    work = list(batches(pending, settings["batch_size"]))
+    worker_count = effective_worker_count(model, settings["workers"], work)
     log.info("%d prompts selected: %d to generate, %d already done (model=%s)",
              len(prompts), len(pending), len(prompts) - len(pending), model["id"])
 
@@ -74,39 +99,61 @@ def run(cfg, run, source=None):
         "rows_out": 0,
         "rows_skipped": len(prompts) - len(pending),
         "model": model["id"],
+        "workers": worker_count,
+        "requested_workers": settings["workers"],
         "failed": [],
     }
     if cfg["run"]["dry_run"]:
         return {**summary, "planned": len(pending)}
 
-    backend = build_image_backend(model, cfg["paths"]["models"])
     started = time.perf_counter()
     generated = logged = 0
-    try:
-        if pending:
-            backend.load()
-        for batch in batches(pending, settings["batch_size"]):
-            requests = [make_request(row, seed + position, settings) for position, row in batch]
-            try:
-                images = backend.generate(requests)
-            except Exception as exc:
-                if settings["stop_on_error"]:
-                    raise
-                log.error("generation failed for %s: %s", [r["prompt_id"] for r in requests], exc)
-                summary["failed"] += [r["prompt_id"] for r in requests]
-                continue
+    records_lock = Lock()
 
-            rows = {str(row["prompt_id"]): row for _, row in batch}
-            for image in images:
-                record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run)
-                append_jsonl(records_file, record)
-                generated += 1
-            if generated - logged >= settings["log_every"]:
-                logged = generated
-                rate = generated / (time.perf_counter() - started)
-                log.info("generated %d images so far (%.2f images/s)", generated, rate)
+    def generate_batches(assigned_batches):
+        """Run an assigned sequence of batches through one private model instance."""
+        backend = build_image_backend(model, cfg["paths"]["models"])
+        completed = 0
+        failed = []
+        try:
+            backend.load()
+            for batch in assigned_batches:
+                requests = [make_request(row, seed + position, settings) for position, row in batch]
+                try:
+                    images = backend.generate(requests)
+                except Exception as exc:
+                    if settings["stop_on_error"]:
+                        raise
+                    log.error("generation failed for %s: %s", [r["prompt_id"] for r in requests], exc)
+                    failed.extend(r["prompt_id"] for r in requests)
+                    continue
+
+                rows = {str(row["prompt_id"]): row for _, row in batch}
+                for image in images:
+                    record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run)
+                    # Workers share one manifest; serialise append+flush so each
+                    # completed image remains a complete JSONL record on resume.
+                    with records_lock:
+                        append_jsonl(records_file, record)
+                    completed += 1
+        finally:
+            backend.unload()
+        return completed, failed
+
+    try:
+        if worker_count:
+            assignments = [work[index::worker_count] for index in range(worker_count)]
+            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="generate") as executor:
+                futures = [executor.submit(generate_batches, assignment) for assignment in assignments]
+                for future in as_completed(futures):
+                    completed, failed = future.result()
+                    generated += completed
+                    summary["failed"].extend(failed)
+                    if generated - logged >= settings["log_every"]:
+                        logged = generated
+                        rate = generated / (time.perf_counter() - started)
+                        log.info("generated %d images so far (%.2f images/s)", generated, rate)
     finally:
-        backend.unload()
         write_records_table(records_file, run, settings)
 
     elapsed = time.perf_counter() - started

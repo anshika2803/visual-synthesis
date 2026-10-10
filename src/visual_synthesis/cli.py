@@ -50,6 +50,12 @@ RUN_OPTIONS = [
                      "help": "How --limit picks rows."}),
     (("--stratify-by",), {"help": "Column for --sample stratified."}),
     (("--seed",), {"type": int, "help": "Seed for sampling and generation."}),
+    (("--workers",), {"type": click.IntRange(min=1),
+                        "help": "Concurrent model/detector instances for generate or nsfw."}),
+    (("--generate-workers",), {"type": click.IntRange(min=1),
+                                 "help": "Concurrent model instances for generate (also works with run all)."}),
+    (("--nsfw-workers",), {"type": click.IntRange(min=1),
+                             "help": "Concurrent detector instances for nsfw (also works with run all)."}),
     (("--model", "-m"), {"help": "Model id (generate, download)."}),
     (("--detector",), {"help": "Detector id, or 'none' (nsfw, download)."}),
     (("--dataset",), {"help": "Dataset id (download only)."}),
@@ -91,7 +97,20 @@ def load_for_run(stage, config_files, options):
         "logging.level": options["log_level"],
         "generate.model": options["model"],
         "nsfw.detector": options["detector"],
+        "generate.workers": options["generate_workers"],
+        "nsfw.workers": options["nsfw_workers"],
     }
+    # `--workers` is a convenient shorthand for a single stage. With `run all`
+    # it deliberately applies to both parallel stages; use the two explicit
+    # flags above when they need different values.
+    if options["workers"] is not None:
+        if stage is pipeline.s05_generate:
+            flags["generate.workers"] = options["workers"]
+        elif stage is pipeline.s06_nsfw:
+            flags["nsfw.workers"] = options["workers"]
+        elif stage is None:
+            flags["generate.workers"] = options["workers"]
+            flags["nsfw.workers"] = options["workers"]
     # A flag that was not passed must not replace the configured value.
     overrides = {key: value for key, value in flags.items() if value is not None}
     # `download --dataset i2p` (or --model / --detector) fetches just that.
