@@ -28,9 +28,10 @@ from threading import Lock
 
 import pandas as pd
 
-from visual_synthesis.backends.detectors import build_detector, is_flagged
+from visual_synthesis.backends.detectors import build_detector, is_flagged, supports_threads
 from visual_synthesis.config import get_detector
 from visual_synthesis.io import append_jsonl, clean, read_jsonl, read_table, write_table
+from visual_synthesis.progress import Progress
 
 log = logging.getLogger(__name__)
 
@@ -65,12 +66,20 @@ def run(cfg, run, source=None):
     log.info("%d images found: %d to check, %d already done (detector=%s, threshold=%s)",
              len(images), len(pending), len(images) - len(pending), detector["id"], threshold)
 
+    worker_count = min(settings["workers"], len(pending))
+    if worker_count > 1 and not supports_threads(detector):
+        log.warning(
+            "detector %s runs torch on Metal, which is not thread-safe; using one worker instead of %d",
+            detector["id"], worker_count,
+        )
+        worker_count = 1
+
     summary = {
         "rows_in": len(images),
         "rows_out": 0,
         "rows_skipped": len(images) - len(pending),
         "detector": detector["id"],
-        "workers": settings["workers"],
+        "workers": worker_count,
         "threshold": threshold,
     }
     if cfg["run"]["dry_run"]:
@@ -115,23 +124,22 @@ def run(cfg, run, source=None):
                 # retaining an on-disk record for every completed image.
                 with records_lock:
                     append_jsonl(records_file, record)
+                progress.advance(1, errors=int(record["status"] == "error"), flagged=int(record["flagged"]))
         finally:
             backend.unload()
         return len(assigned_images), errors
 
     try:
-        worker_count = min(settings["workers"], len(pending))
         checked = errors = 0
-        if worker_count:
-            assignments = [pending[index::worker_count] for index in range(worker_count)]
-            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="nsfw") as executor:
-                futures = [executor.submit(detect_images, assignment) for assignment in assignments]
-                for future in as_completed(futures):
-                    completed, worker_errors = future.result()
-                    checked += completed
-                    errors += worker_errors
-                    if checked % settings["log_every"] == 0 or checked == len(pending):
-                        log.info("checked %d/%d images", checked, len(pending))
+        with Progress(len(pending), "nsfw", "img", settings["log_every"]) as progress:
+            if worker_count:
+                assignments = [pending[index::worker_count] for index in range(worker_count)]
+                with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="nsfw") as executor:
+                    futures = [executor.submit(detect_images, assignment) for assignment in assignments]
+                    for future in as_completed(futures):
+                        completed, worker_errors = future.result()
+                        checked += completed
+                        errors += worker_errors
     finally:
         table = write_detection_tables(records_file, run, settings, detector["id"])
 

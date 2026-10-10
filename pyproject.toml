@@ -15,6 +15,7 @@ dependencies = [
     "numpy>=1.26",
     "pillow>=10.3",
     "huggingface-hub>=0.24",
+    "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]

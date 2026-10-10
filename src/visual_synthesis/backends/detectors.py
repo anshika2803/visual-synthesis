@@ -27,6 +27,19 @@ def build_detector(detector, models_root=None):
     return backends[detector["backend"]](detector, models_root)
 
 
+def supports_threads(detector):
+    """Whether several instances of this detector can run in threads of one process.
+
+    NudeNet is ONNX on the CPU, so yes. Torch on Apple Metal is not thread-safe:
+    two threads running the safety checker abort the whole process.
+    """
+    if detector["backend"] != "safety_checker":
+        return True
+    from visual_synthesis.backends.device import pick_device
+
+    return pick_device(detector["device"]) != "mps"
+
+
 def is_flagged(scores, detector, threshold=None):
     """Whether an image counts as NSFW.
 

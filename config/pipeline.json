@@ -125,6 +125,7 @@
       "repo_id": "stabilityai/sd-turbo",
       "family": "stable_diffusion",
       "variant": "fp16",
+      "dtype": "float16",
       "num_inference_steps": 1,
       "guidance_scale": 0.0,
       "width": 512,

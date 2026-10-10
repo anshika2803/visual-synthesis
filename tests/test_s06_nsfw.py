@@ -63,3 +63,28 @@ def test_configured_workers_use_separate_detector_backends(cfg, tmp_path, monkey
     assert result["workers"] == 3
     assert state["maximum"] == 3
     assert len(table) == 6
+
+
+def test_detector_that_is_not_thread_safe_gets_one_worker(cfg, tmp_path, monkeypatch):
+    images = tmp_path / "images"
+    images.mkdir()
+    for index in range(4):
+        Image.new("RGB", (8, 8), "white").save(images / f"image-{index}.png")
+    cfg["nsfw"]["workers"] = 3
+    monkeypatch.setattr(s06_nsfw, "supports_threads", lambda detector: False)
+
+    result = run_stage(cfg, s06_nsfw, input_path=images)
+
+    assert result["workers"] == 1
+    assert len(pd.read_parquet(f"{result['run_dir']}/detections.parquet")) == 4
+
+
+def test_only_the_metal_safety_checker_is_not_thread_safe(monkeypatch):
+    from visual_synthesis.backends import detectors, device
+
+    assert detectors.supports_threads({"backend": "nudenet", "device": "auto"})
+    assert detectors.supports_threads({"backend": "fake", "device": "auto"})
+    monkeypatch.setattr(device, "pick_device", lambda preference, index=None: "mps")
+    assert not detectors.supports_threads({"backend": "safety_checker", "device": "auto"})
+    monkeypatch.setattr(device, "pick_device", lambda preference, index=None: "cpu")
+    assert detectors.supports_threads({"backend": "safety_checker", "device": "auto"})

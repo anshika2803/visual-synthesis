@@ -70,11 +70,26 @@ def test_configured_workers_use_separate_generation_backends(cfg, tmp_path, monk
     assert set(table["prompt_id"]) == {f"P{i}" for i in range(6)}
 
 
-def test_mps_diffusers_are_limited_to_one_worker(monkeypatch):
+def test_mps_diffusers_copies_run_in_processes_not_threads(monkeypatch):
+    """Torch on Metal aborts when two threads run pipelines, so MPS copies are processes."""
+    diffusers = {"backend": "diffusers", "device": "auto", "device_index": None}
     monkeypatch.setattr(s05_generate, "pick_device", lambda preference, index: "mps")
+    assert s05_generate.uses_processes(diffusers, 2)
+    assert not s05_generate.uses_processes(diffusers, 1)  # a single copy stays in the main process
+    assert not s05_generate.uses_processes({**diffusers, "backend": "fake"}, 2)
 
-    workers = s05_generate.effective_worker_count(
-        {"backend": "diffusers", "device": "auto", "device_index": None}, 3, [1, 2, 3]
-    )
+    monkeypatch.setattr(s05_generate, "pick_device", lambda preference, index: "cuda:0")
+    assert not s05_generate.uses_processes(diffusers, 2)
 
-    assert workers == 1
+
+def test_process_workers_generate_every_prompt_once(cfg, tmp_path, monkeypatch):
+    """The process pool path: models are built in spawned workers, the parent writes the records."""
+    cfg["generate"]["workers"] = 2
+    monkeypatch.setattr(s05_generate, "uses_processes", lambda model, workers: True)
+
+    result = run_stage(cfg, s05_generate, input_path=prompts_table(tmp_path, count=5))
+
+    table = pd.read_parquet(f"{result['run_dir']}/generations.parquet")
+    assert (result["worker_mode"], result["workers"], result["rows_out"]) == ("process", 2, 5)
+    assert sorted(table["prompt_id"]) == [f"P{i}" for i in range(5)]
+    assert all(Path(path).exists() for path in table["image_path"])

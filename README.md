@@ -87,8 +87,44 @@ Flags shared by every stage:
 
 Each worker is a separate loaded copy of the selected model or detector. Start
 with the default of one and choose a value that fits the available GPU/CPU memory.
-On Apple Metal (MPS), Diffusers generation is safely limited to one worker;
-use a CUDA device to run multiple diffusion-model copies concurrently.
+`generate` and `nsfw` both show a progress bar on a terminal; in a batch job
+(no terminal) they log a progress line every `log_every` items instead.
+
+How the copies run depends on the device:
+
+| Stage / device | Copies run as | Notes |
+|----------------|---------------|-------|
+| `generate`, CUDA or CPU | threads | |
+| `generate`, Apple Metal (MPS) | **processes** | Torch on Metal aborts when two threads run pipelines, so each copy gets its own process. Use `dtype: float16` (below); in float32 two sd-turbo copies need ~10 GB and are *slower* than one. |
+| `nsfw`, NudeNet | threads | CPU/ONNX; 2 is the sweet spot on a laptop, more oversubscribes the cores. |
+| `nsfw`, `safety_checker` on MPS | one worker | Same Metal limit; a warning is logged and `--workers` is ignored. |
+
+Measured on a 16 GB Apple-silicon Mac, sd-turbo, 40 prompts including model load:
+
+| | images/min |
+|--|--|
+| float32, 1 worker (previous default) | 54 |
+| float16, 1 worker | 65 |
+| float16, 2 worker processes | 68 (about 1.4 img/s once loaded) |
+
+The GPU is the bottleneck, so a second copy adds only ~8% on top of float16;
+the precision change is the bigger win. Images are identical for any worker
+count, and float16 differs from float32 by under 0.5/255 per pixel.
+`sd-turbo` is set to `float16` in `config/pipeline.json`; an explicit `float16`
+is honoured on Metal, while an unset `dtype` stays float32 there.
+
+### Passing extra flags through `make`
+
+```bash
+make generate MODEL=sd-turbo WORKERS=2 LIMIT=100
+make generate DTYPE=float16                          # weight precision of MODEL
+make generate ARGS="--seed 7 --overwrite"            # any visual-synthesis flag
+make generate SET="generate.batch_size=2 generate.save_format=jpeg"   # config overrides
+make nsfw DETECTOR=nudenet WORKERS=2 ARGS="--input some/images" SET="nsfw.threshold=0.4"
+```
+
+`ARGS` is appended verbatim; each item of `SET` becomes `--set KEY=VALUE`.
+Both work on every pipeline target (`generate`, `nsfw`, `pilot`, `run-all`, ...).
 
 ### Run folders: nothing is overwritten
 

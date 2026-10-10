@@ -14,6 +14,13 @@ WORKERS   ?= 1
 RUN_NAME  ?=
 CONFIG    ?=
 KEEP      ?= 20
+# Pass-through to the pipeline command, for anything without its own variable:
+#   ARGS="--seed 7 --overwrite --sample random"      raw `visual-synthesis` flags
+#   SET="generate.batch_size=2 nsfw.threshold=0.4"   config overrides, each becomes --set KEY=VALUE
+#   DTYPE=float16                                    weight precision of MODEL (generate / pilot)
+ARGS      ?=
+SET       ?=
+DTYPE     ?=
 IMAGE     ?= visual-synthesis:local
 # CPU wheels by default; for CUDA: make docker-build TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
 TORCH_INDEX_URL ?= https://download.pytorch.org/whl/cpu
@@ -21,7 +28,12 @@ TORCH_INDEX_URL ?= https://download.pytorch.org/whl/cpu
 # CONFIG="a.json b.json" becomes "-c a.json -c b.json"
 FLAGS = $(foreach file,$(CONFIG),-c $(file)) \
         $(if $(RUN_NAME),--run-name $(RUN_NAME)) \
-        $(if $(LIMIT),--limit $(LIMIT))
+        $(if $(LIMIT),--limit $(LIMIT)) \
+        $(foreach item,$(SET),--set $(item)) \
+        $(ARGS)
+
+# The model-precision override, only for the stages that load an image model.
+MODEL_FLAGS = $(if $(DTYPE),--set models.$(MODEL).dtype=$(DTYPE))
 
 .PHONY: help
 help:  ## Show this help
@@ -70,15 +82,16 @@ unify:  ## Merge the standardized datasets
 dedup:  ## Deduplicate the unified table
 	$(VS) postprocess $(FLAGS)
 
-generate:  ## Generate images: make generate MODEL=sd-xl LIMIT=100 WORKERS=3
-	$(VS) generate --model $(MODEL) --workers $(WORKERS) $(FLAGS)
+generate:  ## Generate images: make generate MODEL=sd-xl LIMIT=100 WORKERS=3 [DTYPE=float16] [ARGS="--seed 7"] [SET="generate.batch_size=2"]
+	$(VS) generate --model $(MODEL) --workers $(WORKERS) $(MODEL_FLAGS) $(FLAGS)
 
-nsfw:  ## Detect NSFW content: make nsfw DETECTOR=nudenet WORKERS=5
+nsfw:  ## Detect NSFW content: make nsfw DETECTOR=nudenet WORKERS=5 [ARGS="--input DIR"] [SET="nsfw.threshold=0.4"]
 	$(VS) nsfw --detector $(DETECTOR) --workers $(WORKERS) $(FLAGS)
 
 pilot:  ## Generate a small stratified pilot: make pilot LIMIT=60
 	$(VS) generate --model $(MODEL) --sample stratified --stratify-by standard_category \
-	  --limit $(or $(LIMIT),60) --run-name $(or $(RUN_NAME),pilot) --workers $(WORKERS)
+	  --limit $(or $(LIMIT),60) --run-name $(or $(RUN_NAME),pilot) --workers $(WORKERS) \
+	  $(MODEL_FLAGS) $(foreach item,$(SET),--set $(item)) $(ARGS)
 
 dry-run:  ## Show what the whole chain would do, without writing
 	$(VS) run all --dry-run $(FLAGS)
@@ -87,7 +100,7 @@ dry-run:  ## Show what the whole chain would do, without writing
 
 .PHONY: interact ui serve
 interact:  ## Interactive terminal session
-	$(VS) interact --model $(MODEL) --detector $(DETECTOR)
+	$(VS) interact --model $(MODEL) --detector $(DETECTOR) $(ARGS)
 
 ui:  ## Launch the web UI
 	$(VS) ui

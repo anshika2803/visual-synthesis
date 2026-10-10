@@ -15,8 +15,10 @@ same ``--run-name``.
 """
 
 import logging
+import multiprocessing
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from threading import Lock
 
 import pandas as pd
@@ -34,6 +36,7 @@ from visual_synthesis.io import (
     select_rows,
     write_table,
 )
+from visual_synthesis.progress import Progress
 
 log = logging.getLogger(__name__)
 
@@ -46,24 +49,32 @@ NEEDS_GPU = True
 PROMPT_COLUMNS = ["source_dataset", "standard_category", "risk_level", "benchmark_level", "transformation"]
 
 
-def effective_worker_count(model, requested_workers, work_items):
-    """The number of backend instances that can safely run this workload.
+def uses_processes(model, workers):
+    """Whether the extra model copies must each live in their own process.
 
-    MPS permits a single Diffusers command stream reliably, but concurrent
-    pipelines can abort the Python process in Metal. CUDA and CPU backends may
-    use the requested number of workers.
+    Torch on Apple Metal is not thread-safe: two Diffusers pipelines generating
+    in threads of one process abort it (an MPSGraph over-release). Separate
+    processes get separate Metal contexts and work, so on MPS every copy is a
+    process. CUDA and CPU copies are threads: they share the loaded weights'
+    code and start faster.
     """
-    workers = min(requested_workers, len(work_items))
-    if workers > 1 and model["backend"] == "diffusers":
-        device = pick_device(model["device"], model["device_index"])
-        if device == "mps":
-            log.warning(
-                "MPS does not safely support concurrent Diffusers pipelines; "
-                "using one generation worker instead of %d. Use CUDA to run multiple models in parallel.",
-                workers,
-            )
-            return 1
-    return workers
+    if workers < 2 or model["backend"] != "diffusers":
+        return False
+    return pick_device(model["device"], model["device_index"]) == "mps"
+
+
+# The backend owned by this spawned worker process (see ``generate_in_processes``).
+_process_backend = None
+
+
+def _start_process_worker(model, models_root):
+    global _process_backend
+    _process_backend = build_image_backend(model, models_root)
+    _process_backend.load()
+
+
+def _generate_in_process(requests):
+    return _process_backend.generate(requests)
 
 
 def run(cfg, run, source=None):
@@ -90,7 +101,8 @@ def run(cfg, run, source=None):
         if str(row["prompt_id"]) not in done
     ]
     work = list(batches(pending, settings["batch_size"]))
-    worker_count = effective_worker_count(model, settings["workers"], work)
+    worker_count = min(settings["workers"], len(work))
+    in_processes = uses_processes(model, worker_count)
     log.info("%d prompts selected: %d to generate, %d already done (model=%s)",
              len(prompts), len(pending), len(prompts) - len(pending), model["id"])
 
@@ -100,59 +112,109 @@ def run(cfg, run, source=None):
         "rows_skipped": len(prompts) - len(pending),
         "model": model["id"],
         "workers": worker_count,
-        "requested_workers": settings["workers"],
+        "worker_mode": "process" if in_processes else "thread",
         "failed": [],
     }
     if cfg["run"]["dry_run"]:
         return {**summary, "planned": len(pending)}
+    if in_processes and model["dtype"] != "float16":
+        log.warning(
+            "running %d %s copies on Metal in float32 needs about %d GB of memory and can be slower than one; "
+            "set the model's dtype to float16 (--set models.%s.dtype=float16) to roughly halve that",
+            worker_count, model["id"], 5 * worker_count, model["id"],
+        )
 
     started = time.perf_counter()
-    generated = logged = 0
+    generated = 0
     records_lock = Lock()
 
+    def requests_for(batch):
+        return [make_request(row, seed + position, settings) for position, row in batch]
+
+    def store(batch, images):
+        """Save a finished batch, append its records and tick the bar; returns the images written."""
+        rows = {str(row["prompt_id"]): row for _, row in batch}
+        for image in images:
+            record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run)
+            # Copies share one manifest; serialise append+flush so each
+            # completed image remains a complete JSONL record on resume.
+            with records_lock:
+                append_jsonl(records_file, record)
+        progress.advance(len(batch))
+        return len(images)
+
+    def fail(requests, exc):
+        """Record a failed batch (or re-raise with stop_on_error); returns its prompt ids."""
+        if settings["stop_on_error"]:
+            raise exc
+        ids = [r["prompt_id"] for r in requests]
+        log.error("generation failed for %s: %s", ids, exc)
+        progress.advance(len(requests), failed=len(requests))
+        return ids
+
     def generate_batches(assigned_batches):
-        """Run an assigned sequence of batches through one private model instance."""
+        """Run an assigned sequence of batches through one private model instance (a thread)."""
         backend = build_image_backend(model, cfg["paths"]["models"])
-        completed = 0
-        failed = []
+        completed, failures = 0, []
         try:
             backend.load()
             for batch in assigned_batches:
-                requests = [make_request(row, seed + position, settings) for position, row in batch]
+                requests = requests_for(batch)
                 try:
                     images = backend.generate(requests)
                 except Exception as exc:
-                    if settings["stop_on_error"]:
-                        raise
-                    log.error("generation failed for %s: %s", [r["prompt_id"] for r in requests], exc)
-                    failed.extend(r["prompt_id"] for r in requests)
+                    failures.extend(fail(requests, exc))
                     continue
-
-                rows = {str(row["prompt_id"]): row for _, row in batch}
-                for image in images:
-                    record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run)
-                    # Workers share one manifest; serialise append+flush so each
-                    # completed image remains a complete JSONL record on resume.
-                    with records_lock:
-                        append_jsonl(records_file, record)
-                    completed += 1
+                completed += store(batch, images)
         finally:
             backend.unload()
-        return completed, failed
+        return completed, failures
+
+    def generate_in_processes():
+        """One model per worker process; batches are handed out as workers free up."""
+        completed, failures = 0, []
+        executor = ProcessPoolExecutor(
+            worker_count,
+            mp_context=multiprocessing.get_context("spawn"),
+            initializer=_start_process_worker,
+            initargs=(model, cfg["paths"]["models"]),
+        )
+        with executor:
+            try:
+                pending_futures = {}
+                for batch in work:
+                    requests = requests_for(batch)
+                    pending_futures[executor.submit(_generate_in_process, requests)] = (batch, requests)
+                for future in as_completed(pending_futures):
+                    batch, requests = pending_futures[future]
+                    try:
+                        images = future.result()
+                    except BrokenProcessPool as exc:
+                        raise RuntimeError(
+                            "a generation worker process died (out of memory?); use fewer --workers"
+                        ) from exc
+                    except Exception as exc:
+                        failures.extend(fail(requests, exc))
+                        continue
+                    completed += store(batch, images)
+            except BaseException:
+                # Do not let the pool grind through the rest of the queue before the error surfaces.
+                executor.shutdown(wait=True, cancel_futures=True)
+                raise
+        return completed, failures
 
     try:
-        if worker_count:
-            assignments = [work[index::worker_count] for index in range(worker_count)]
-            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="generate") as executor:
-                futures = [executor.submit(generate_batches, assignment) for assignment in assignments]
-                for future in as_completed(futures):
-                    completed, failed = future.result()
-                    generated += completed
-                    summary["failed"].extend(failed)
-                    if generated - logged >= settings["log_every"]:
-                        logged = generated
-                        rate = generated / (time.perf_counter() - started)
-                        log.info("generated %d images so far (%.2f images/s)", generated, rate)
+        with Progress(len(pending), "generate", "img", settings["log_every"]) as progress:
+            if in_processes:
+                generated, summary["failed"] = generate_in_processes()
+            elif worker_count:
+                assignments = [work[index::worker_count] for index in range(worker_count)]
+                with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="generate") as executor:
+                    futures = [executor.submit(generate_batches, assignment) for assignment in assignments]
+                    for future in as_completed(futures):
+                        completed, failures = future.result()
+                        generated += completed
+                        summary["failed"].extend(failures)
     finally:
         write_records_table(records_file, run, settings)
 
