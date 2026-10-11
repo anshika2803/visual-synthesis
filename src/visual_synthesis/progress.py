@@ -73,12 +73,12 @@ class Progress:
                 self._logged = self.done
                 rate = self.done / max(time.perf_counter() - self._started, 1e-9)
                 extra = "".join(f", {key}={value}" for key, value in shown.items())
-                desc = self.description
+                suffix = ""
                 parts = []
                 if self.model_id:
                     parts.append(self.model_id)
                 if self.tag:
                     parts.append(self.tag)
                 if parts:
-                    desc = f"{self.description} [{', '.join(parts)}]"
-                log.info("%s %d/%d (%.2f/s%s)", desc, self.done, self.total, rate, extra)
+                    suffix = f" [{', '.join(parts)}]"
+                log.info("%s %d/%d%s (%.2f/s%s)", self.description, self.done, self.total, suffix, rate, extra)

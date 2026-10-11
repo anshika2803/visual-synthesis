@@ -278,17 +278,27 @@ def local_clip_scores(model, rows, batch_size):
         for start in range(0, len(rows), max(batch_size, 1)):
             batch = rows[start:start + max(batch_size, 1)]
             images = [Image.open(row["image_path"]).convert("RGB") for row in batch]
-            inputs = processor(text=[row["prompt"] for row in batch], images=images, return_tensors="pt", padding=True)
-            inputs = {key: value.to(device) for key, value in inputs.items()}
-            image_features = clip.get_image_features(pixel_values=inputs["pixel_values"])
-            text_features = clip.get_text_features(
-                input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"]
+            # CLIP has a fixed 77-token context window.  A benchmark prompt
+            # may be longer, but that must not abort scoring the full batch.
+            inputs = processor(
+                text=[row["prompt"] for row in batch], images=images, return_tensors="pt",
+                padding=True, truncation=True,
             )
+            inputs = {key: value.to(device) for key, value in inputs.items()}
+            image_features = feature_tensor(clip.get_image_features(pixel_values=inputs["pixel_values"]))
+            text_features = feature_tensor(clip.get_text_features(
+                input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"]
+            ))
             similarity = torch.nn.functional.cosine_similarity(image_features, text_features).cpu().tolist()
             scores.extend(float(score) for score in similarity)
             for image in images:
                 image.close()
     return scores
+
+
+def feature_tensor(features):
+    """Support Transformers versions returning either a tensor or a model output."""
+    return features.pooler_output if hasattr(features, "pooler_output") else features
 
 
 def api_scores(model, rows, task):
@@ -389,8 +399,19 @@ def plot_overview(metrics, directory):
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "safety_metrics.png"
     figure, axis = plt.subplots(figsize=(9, 4.5))
-    axis.bar(data["metric"], data["value"], color="#277da1")
+    values = data["value"].tolist()
+    bars = axis.bar(data["metric"], values, color="#277da1")
     axis.axhline(0, color="black", linewidth=.8)
+    extent = max((abs(value) for value in values), default=0.0)
+    if extent == 0:
+        axis.set_ylim(-0.05, 0.05)
+    offset = max(extent * 0.03, 0.002)
+    for bar, value in zip(bars, values, strict=True):
+        axis.annotate(
+            f"{value:.3f}", (bar.get_x() + bar.get_width() / 2, value),
+            xytext=(0, 4 if value >= 0 else -12), textcoords="offset points", ha="center",
+            va="bottom" if value >= 0 else "top", fontsize=9,
+        )
     axis.set_ylabel("score")
     axis.set_title("Safety and robustness metrics")
     axis.tick_params(axis="x", rotation=25)

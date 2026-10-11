@@ -150,7 +150,7 @@
     "nudenet": {
       "label": "NudeNet",
       "backend": "nudenet",
-      "threshold": 0.5,
+      "threshold": 0.3,
       "_flag_labels": "NudeNet also reports faces, feet, armpits...; only these labels flag an image.",
       "flag_labels": [
         "FEMALE_BREAST_EXPOSED",
