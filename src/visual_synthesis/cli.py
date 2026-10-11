@@ -12,6 +12,7 @@
 """
 
 import json
+import math
 import shutil
 import sys
 from pathlib import Path
@@ -34,6 +35,7 @@ from visual_synthesis.config import (
 from visual_synthesis.io import find_table, read_table
 from visual_synthesis.log import setup_logging
 from visual_synthesis.runs import latest_run, list_runs
+from visual_synthesis.stages.s07_metrics import compare_metric_runs, plot_comparison
 
 config_option = click.option("--config", "-c", "config_files", multiple=True, type=click.Path(),
                              help="Config file; repeat to layer overrides on top of each other.")
@@ -141,6 +143,32 @@ def print_result(result):
     print_table(result["stage"].upper(), rows)
 
 
+def print_metric_values(result):
+    """Show the actual metric values in the CLI, not only their output path."""
+    def is_missing(value):
+        return value is None or (isinstance(value, float) and math.isnan(value))
+
+    path = result.get("metrics_file")
+    if not path or not Path(path).is_file():
+        return
+    metrics = read_table(path)
+    rows = []
+    for row in metrics.itertuples(index=False):
+        raw_value = getattr(row, "value")
+        value = "n/a" if is_missing(raw_value) else f"{raw_value:.6g}"
+        numerator, denominator = getattr(row, "numerator"), getattr(row, "denominator")
+        if is_missing(denominator):
+            counts = ""
+        elif is_missing(numerator):
+            counts = f" (n/a/{denominator:g})"
+        else:
+            counts = f" ({numerator:g}/{denominator:g})"
+        raw_detail = getattr(row, "detail")
+        detail = "" if is_missing(raw_detail) else f" — {raw_detail}"
+        rows.append((getattr(row, "metric"), f"{value}{counts} [{getattr(row, 'status')}]{detail}"))
+    print_table("METRICS", rows)
+
+
 def find_stage(name):
     try:
         return pipeline.find_stage(name)
@@ -153,7 +181,7 @@ def find_stage(name):
 def cli():
     """Config-driven pipeline for a unified text-to-image safety benchmark.
 
-    Stages: download -> standardize -> unify -> postprocess -> generate -> nsfw
+    Stages: download -> standardize -> unify -> postprocess -> generate -> nsfw -> metrics
     """
 
 
@@ -166,6 +194,7 @@ def run_one(stage, config_files, options):
         cfg, stage, options["run_name"], options["mode"], options["latest"], options["input_path"]
     )
     print_result(result)
+    print_metric_values(result)
     if result["status"] in ("failed", "disabled"):
         sys.exit(1)
 
@@ -193,6 +222,7 @@ def run_command(stage, first, last, config_files, **options):
     results = pipeline.run_chain(cfg, stages, options["run_name"], options["mode"], options["latest"])
     for result in results:
         print_result(result)
+        print_metric_values(result)
     print_table("PIPELINE SUMMARY", [
         (r["stage"], f"{r['status']:8} {r.get('rows_in', '-')} in -> {r.get('rows_out', '-')} out   {r['run_dir']}")
         for r in results
@@ -249,6 +279,10 @@ def models_command(config_files):
     print_table("DETECTORS", [
         (name + (" *" if name == cfg["nsfw"]["detector"] else ""), f"{d['backend']} | threshold={d['threshold']}")
         for name, d in cfg["detectors"].items()
+    ])
+    print_table("METRIC MODELS", [
+        (name, f"{model['kind']} | {model['backend']} | {model['repo_id'] or model['endpoint'] or 'built-in'}")
+        for name, model in cfg["metric_models"].items()
     ])
     click.echo("\n  * = default")
 
@@ -311,6 +345,7 @@ def config_validate(config_files):
         ("detectors", ", ".join(cfg["detectors"])),
         ("default model", cfg["generate"]["model"]),
         ("default detector", cfg["nsfw"]["detector"]),
+        ("alignment evaluator", cfg["metrics"]["alignment"]["model"]),
         ("categories", ", ".join(cfg["taxonomy"])),
     ])
 
@@ -431,6 +466,40 @@ def export_command(source, output, fmt, table, limit, config_files):
     print_table("EXPORTED", [
         ("source", table_path), ("output", output), ("rows", len(frame)), ("columns", len(frame.columns)),
     ])
+
+
+@cli.command("compare-metrics")
+@click.argument("sources", nargs=-1, required=True)
+@click.option("--plot", type=click.Path(), help="Optional destination PNG for the comparison chart.")
+@config_option
+def compare_metrics_command(sources, plot, config_files):
+    """Compare metric runs/tables side by side in the terminal.
+
+    \b
+    visual-synthesis compare-metrics data/runs/s07_metrics/model-a data/runs/s07_metrics/model-b
+    visual-synthesis compare-metrics latest:metrics data/runs/s07_metrics/other --plot results/tables/compare.png
+    """
+    cfg = load(config_files)
+    paths = []
+    for source in sources:
+        if source == "latest:metrics":
+            source = latest_run(cfg["paths"]["runs"], "s07_metrics")
+            if source is None:
+                raise click.ClickException("no metrics runs recorded")
+        try:
+            paths.append(find_table(source, cfg["metrics"]["output_name"]))
+        except FileNotFoundError as exc:
+            raise click.ClickException(str(exc)) from exc
+    comparison = compare_metric_runs(paths)
+    if comparison.empty:
+        return click.echo("no successful metric values found")
+    click.echo(comparison.to_string(index=False))
+    if plot:
+        chart = plot_comparison(comparison, plot)
+        message = f"chart: {chart}" if chart else (
+            "chart unavailable (install the metrics extra or choose comparable values)"
+        )
+        click.echo(message)
 
 
 # ------------------------------------------------------------- front doors

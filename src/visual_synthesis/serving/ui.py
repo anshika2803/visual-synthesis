@@ -1,4 +1,4 @@
-"""Gradio web UI: generate images and inspect them for NSFW content.
+"""Gradio web UI: generate images, inspect NSFW content, and compare runs.
 
     $ visual-synthesis ui        # http://127.0.0.1:7860
 
@@ -12,6 +12,7 @@ from pathlib import Path
 from visual_synthesis.config import DETECTOR_OFF, get_model
 from visual_synthesis.log import setup_logging
 from visual_synthesis.serving.engine import Engine
+from visual_synthesis.stages.s07_metrics import available_metric_runs, compare_metric_runs, plot_comparison
 
 log = logging.getLogger(__name__)
 
@@ -56,27 +57,58 @@ def build_ui(cfg, engine=None):
                     f"| image | flagged | max score | labels |\n|---|---|---|---|\n{rows}")
         return result["images"], details, verdicts
 
+    def refresh_comparisons():
+        choices = available_metric_runs(cfg)
+        return gr.update(choices=list(choices), value=list(choices)[:2])
+
+    def compare_runs(selected):
+        choices = available_metric_runs(cfg)
+        selected = selected or []
+        paths = [choices[label] for label in selected if label in choices]
+        table = compare_metric_runs(paths)
+        chart = plot_comparison(table, out_dir / "metrics-comparison.png")
+        message = "Select one or more metrics runs to compare." if not paths else f"Comparing {len(paths)} run(s)."
+        return table, chart, message
+
     with gr.Blocks(title=cfg["ui"]["title"]) as app:
-        gr.Markdown(f"# {cfg['ui']['title']}\nGenerate images and inspect them for NSFW content.")
-        with gr.Row():
-            with gr.Column(scale=3):
-                prompt = gr.Textbox(label="Prompt", lines=3, placeholder="a serene mountain lake at sunrise")
-                negative = gr.Textbox(label="Negative prompt", placeholder="optional")
-                model_id = gr.Dropdown(list(cfg["models"]), value=default_model["id"], label="Model")
-                detector_id = gr.Dropdown(detector_ids, value=default_detector, label="NSFW detector",
-                                          info="Choose 'off' to skip detection (faster).")
-                button = gr.Button("Generate", variant="primary")
-            with gr.Column(scale=2):
-                steps = gr.Slider(1, 100, value=default_model["num_inference_steps"], step=1, label="Steps")
-                guidance = gr.Slider(0, 20, value=default_model["guidance_scale"], step=0.1, label="Guidance")
-                width = gr.Slider(256, 1536, value=default_model["width"], step=64, label="Width")
-                height = gr.Slider(256, 1536, value=default_model["height"], step=64, label="Height")
-                seed = gr.Number(value=cfg["run"]["seed"], precision=0, label="Seed (-1 for random)")
-                count = gr.Slider(1, cfg["ui"]["max_batch"], value=1, step=1, label="Images")
-                threshold = gr.Slider(0, 1, value=0.5, step=0.05, label="Flag threshold")
-        gallery = gr.Gallery(label="Result", columns=2, height=512)
-        details = gr.Markdown()
-        verdicts = gr.Markdown()
+        gr.Markdown(f"# {cfg['ui']['title']}")
+        with gr.Tabs():
+            with gr.Tab("Generate & inspect"):
+                gr.Markdown("Generate images and inspect them for NSFW content.")
+                with gr.Row():
+                    with gr.Column(scale=3):
+                        prompt = gr.Textbox(label="Prompt", lines=3, placeholder="a serene mountain lake at sunrise")
+                        negative = gr.Textbox(label="Negative prompt", placeholder="optional")
+                        model_id = gr.Dropdown(list(cfg["models"]), value=default_model["id"], label="Model")
+                        detector_id = gr.Dropdown(detector_ids, value=default_detector, label="NSFW detector",
+                                                  info="Choose 'off' to skip detection (faster).")
+                        button = gr.Button("Generate", variant="primary")
+                    with gr.Column(scale=2):
+                        steps = gr.Slider(1, 100, value=default_model["num_inference_steps"], step=1, label="Steps")
+                        guidance = gr.Slider(0, 20, value=default_model["guidance_scale"], step=0.1, label="Guidance")
+                        width = gr.Slider(256, 1536, value=default_model["width"], step=64, label="Width")
+                        height = gr.Slider(256, 1536, value=default_model["height"], step=64, label="Height")
+                        seed = gr.Number(value=cfg["run"]["seed"], precision=0, label="Seed (-1 for random)")
+                        count = gr.Slider(1, cfg["ui"]["max_batch"], value=1, step=1, label="Images")
+                        threshold = gr.Slider(0, 1, value=0.5, step=0.05, label="Flag threshold")
+                gallery = gr.Gallery(label="Result", columns=2, height=512)
+                details = gr.Markdown()
+                verdicts = gr.Markdown()
+
+            with gr.Tab("Metrics comparison"):
+                gr.Markdown(
+                    "Compare persisted metrics runs. Run `visual-synthesis metrics` after detection, then refresh."
+                )
+                choices = available_metric_runs(cfg)
+                metric_runs = gr.Dropdown(
+                    list(choices), value=list(choices)[:2], multiselect=True, label="Metrics runs"
+                )
+                with gr.Row():
+                    compare_button = gr.Button("Compare", variant="primary")
+                    refresh_button = gr.Button("Refresh runs")
+                comparison_status = gr.Markdown()
+                comparison_table = gr.Dataframe(label="Metrics", interactive=False)
+                comparison_plot = gr.Image(label="Comparison chart", type="filepath")
 
         def model_defaults(chosen):
             """Move the sliders to the chosen model's own settings."""
@@ -88,6 +120,9 @@ def build_ui(cfg, engine=None):
         outputs = [gallery, details, verdicts]
         button.click(generate, inputs=inputs, outputs=outputs)
         prompt.submit(generate, inputs=inputs, outputs=outputs)
+        compare_button.click(compare_runs, inputs=metric_runs,
+                             outputs=[comparison_table, comparison_plot, comparison_status])
+        refresh_button.click(refresh_comparisons, outputs=metric_runs)
     return app
 
 

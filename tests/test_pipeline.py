@@ -8,8 +8,12 @@ from visual_synthesis.pipeline import STAGES, run_chain
 def test_whole_pipeline_runs_end_to_end(cfg):
     results = run_chain(cfg, STAGES, run_name="e2e")
 
-    assert [r["status"] for r in results] == ["success"] * 6
-    detections = pd.read_parquet(f"{results[-1]['run_dir']}/detections.parquet")
+    assert [r["status"] for r in results] == ["success"] * 7
+    metrics = pd.read_parquet(f"{results[-1]['run_dir']}/metrics.parquet")
+    assert set(metrics["metric"]).issuperset({"ASR", "ASR-original", "RefusalRate", "FRR"})
+    # The detector stage remains available independently; metrics read its table.
+    detection_run = results[-2]["run_dir"]
+    detections = pd.read_parquet(f"{detection_run}/detections.parquet")
     assert sorted(detections["prompt_id"]) == ["TOY_000", "TOY_001", "TOY_002"]
     assert set(detections["standard_category"]) == {"sexual", "violence", "sexual;violence"}
 

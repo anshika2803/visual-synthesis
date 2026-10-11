@@ -41,7 +41,12 @@ HELP = "Detect NSFW content in the generated images."
 NEEDS_GPU = False
 
 # Copied from the generation table onto every detection record.
-CONTEXT_COLUMNS = ["prompt_id", "prompt", "model", "standard_category", "risk_level"]
+CONTEXT_COLUMNS = [
+    "prompt_id", "prompt", "model", "standard_category", "risk_level", "benchmark_level", "transformation",
+    # These are optional experiment annotations, but preserving them makes the
+    # metrics stage able to report safety-on/off and post-intervention ASR.
+    "safety_mode", "intervened", "refused", "is_refused", "refusal",
+]
 
 
 def run(cfg, run, source=None):

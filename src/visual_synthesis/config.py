@@ -75,6 +75,15 @@ DEFAULTS = {
     "datasets": {},
     "models": {},
     "detectors": {},
+    # Evaluator models are deliberately separate from generation models.  This
+    # makes the measurement method part of an experiment's recorded config.
+    "metric_models": {
+        "clip-vit-base-patch32": {
+            "label": "CLIP ViT-B/32 image-text alignment", "kind": "clip", "backend": "local",
+            "repo_id": "openai/clip-vit-base-patch32",
+        },
+        "fid-inception-v3": {"label": "Inception-v3 FID", "kind": "fid", "backend": "local", "feature": 2048},
+    },
     "stages": {},
     "unify": {
         "output_name": "unified.parquet",
@@ -120,6 +129,27 @@ DEFAULTS = {
         "summary_name": "summary.parquet",
         "max_error_rate": 0.0,
         "log_every": 25,
+    },
+    "metrics": {
+        "output_name": "metrics.parquet",
+        "json_name": "metrics.json",
+        "alignment_output_name": "alignment.parquet",
+        "plots_dir": "plots",
+        # An optional table/run folder containing generations.  When omitted,
+        # the stage finds the generate run from a chained run_id where possible.
+        "generations_input": None,
+        "alignment": {"enabled": True, "model": "clip-vit-base-patch32", "batch_size": 16},
+        "fid": {"enabled": False, "model": "fid-inception-v3", "reference_images": None, "batch_size": 16},
+        # Queries are evaluated against the detection table.  Add project
+        # columns such as safety_mode/intervened to enable the last three.
+        "asr_slices": {
+            "original": {"query": "benchmark_level == 'L1' or transformation == 'original'"},
+            "adversarial": {"query": "benchmark_level == 'L6' or transformation == 'adversarial'"},
+            "safety-on": {"query": "safety_mode == 'on'"},
+            "safety-off": {"query": "safety_mode == 'off'"},
+            "after-intervention": {"query": "intervened == True"},
+        },
+        "refusal_columns": ["refused", "is_refused", "refusal"],
     },
     "slurm": {
         "conda_env": "visual-synthesis",
@@ -209,6 +239,21 @@ DETECTOR_DEFAULTS = {
     "params": {},  # backend-specific extras
 }
 
+# One entry of `metric_models`.  Local backends load the model in-process;
+# `api` sends JSON to `endpoint` and reads a `score`/`scores` response.
+METRIC_MODEL_DEFAULTS = {
+    "label": None,
+    "kind": "clip",  # clip | fid
+    "backend": "local",  # local | api
+    "repo_id": None,
+    "device": "auto",
+    "endpoint": None,
+    "api_key_env": None,
+    "headers": {},
+    "timeout_seconds": 120,
+    "feature": 2048,
+}
+
 # One entry of `stages`: per-stage overrides of `run`.
 STAGE_DEFAULTS = {
     "enabled": True,
@@ -241,11 +286,12 @@ ENTRY_DEFAULTS = {
     "datasets": DATASET_DEFAULTS,
     "models": MODEL_DEFAULTS,
     "detectors": DETECTOR_DEFAULTS,
+    "metric_models": METRIC_MODEL_DEFAULTS,
     "stages": STAGE_DEFAULTS,
 }
 
 # Dict-valued keys whose contents are free-form, so they are not typo-checked.
-FREE_FORM = {"taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters"}
+FREE_FORM = {"taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters", "headers", "asr_slices"}
 
 ENV_OVERRIDES = {
     "VS_LOG_LEVEL": "logging.level",
@@ -433,6 +479,22 @@ def validate(cfg):
         if model["backend"] == "diffusers" and not model["repo_id"]:
             problems.append(f"models.{name}.repo_id is required")
 
+    for name, model in cfg["metric_models"].items():
+        where = f"metric_models.{name}"
+        if model["kind"] not in ("clip", "fid"):
+            problems.append(f"{where}.kind must be clip or fid")
+        if model["backend"] not in ("local", "api"):
+            problems.append(f"{where}.backend must be local or api")
+        if model["backend"] == "local" and model["kind"] == "clip" and not model["repo_id"]:
+            problems.append(f"{where}.repo_id is required for a local CLIP evaluator")
+        if model["backend"] == "api" and not model["endpoint"]:
+            problems.append(f"{where}.endpoint is required for an API evaluator")
+
+    for name in ("alignment", "fid"):
+        evaluator = cfg["metrics"][name]
+        if evaluator["enabled"] and evaluator["model"] not in cfg["metric_models"]:
+            problems.append(f"metrics.{name}.model={evaluator['model']!r} is not defined under 'metric_models'")
+
     for name, dataset in cfg["datasets"].items():
         where = f"datasets.{name}"
         if not dataset["id_template"] or "{" not in dataset["id_template"]:
@@ -476,6 +538,13 @@ def get_detector(cfg, detector_id=None):
     if detector_id not in cfg["detectors"]:
         raise KeyError(f"unknown detector {detector_id!r}; configured: {sorted(cfg['detectors'])}")
     return {"id": detector_id, **cfg["detectors"][detector_id]}
+
+
+def get_metric_model(cfg, model_id):
+    """A configured evaluator model, with its id added."""
+    if model_id not in cfg["metric_models"]:
+        raise KeyError(f"unknown metric model {model_id!r}; configured: {sorted(cfg['metric_models'])}")
+    return {"id": model_id, **cfg["metric_models"][model_id]}
 
 
 def stage_setting(cfg, stage_name, key):

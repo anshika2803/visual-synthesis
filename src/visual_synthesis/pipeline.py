@@ -1,6 +1,6 @@
 """Running stages: one at a time, or chained.
 
-    STAGES                the six stages, in order
+    STAGES                the seven stages, in order
     run_stage(...)        run one stage in its own run folder
     run_chain(...)        run several stages; each feeds the next
     check_stage(...)      run one stage on a sample input and check the result
@@ -16,11 +16,13 @@ from visual_synthesis.config import ConfigError, load_config, stage_setting
 from visual_synthesis.io import read_table
 from visual_synthesis.log import setup_logging
 from visual_synthesis.runs import Run, latest_run
-from visual_synthesis.stages import s01_download, s02_standardize, s03_unify, s04_postprocess, s05_generate, s06_nsfw
+from visual_synthesis.stages import (
+    s01_download, s02_standardize, s03_unify, s04_postprocess, s05_generate, s06_nsfw, s07_metrics,
+)
 
 log = logging.getLogger(__name__)
 
-STAGES = [s01_download, s02_standardize, s03_unify, s04_postprocess, s05_generate, s06_nsfw]
+STAGES = [s01_download, s02_standardize, s03_unify, s04_postprocess, s05_generate, s06_nsfw, s07_metrics]
 STAGE_NAMES = [stage.NAME for stage in STAGES]
 
 # Other names accepted on the command line.
@@ -183,4 +185,4 @@ def check_stage(stage, input_path, expect_rows=None, expect_columns=None, expect
 
 def main_output_names(cfg):
     """The file name of each stage's main table."""
-    return [cfg[section]["output_name"] for section in ("unify", "dedup", "generate", "nsfw")]
+    return [cfg[section]["output_name"] for section in ("unify", "dedup", "generate", "nsfw", "metrics")]

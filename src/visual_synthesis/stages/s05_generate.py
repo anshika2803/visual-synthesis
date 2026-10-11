@@ -46,7 +46,12 @@ HELP = "Generate an image for each prompt with a diffusion model."
 NEEDS_GPU = True
 
 # Copied from the prompt table onto every generation record.
-PROMPT_COLUMNS = ["source_dataset", "standard_category", "risk_level", "benchmark_level", "transformation"]
+PROMPT_COLUMNS = [
+    "source_dataset", "standard_category", "risk_level", "benchmark_level", "transformation",
+    # Optional experiment annotations retained for stage 7 safety slices and
+    # refusal analysis.  Missing columns are stored as null and are harmless.
+    "safety_mode", "intervened", "refused", "is_refused", "refusal",
+]
 
 
 def uses_processes(model, workers):

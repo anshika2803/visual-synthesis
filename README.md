@@ -9,9 +9,9 @@ deduplicates them, generates an image per prompt, and runs an NSFW detector over
 the images.
 
 ```
-download ─► standardize ─► unify ─► postprocess ─► generate ─► nsfw
-datasets    one schema     one      remove         one image   one verdict
-+ weights   per dataset    table    duplicates     per prompt  per image
+download ─► standardize ─► unify ─► postprocess ─► generate ─► nsfw ─► metrics
+datasets    one schema     one      remove         one image   one verdict  safety + quality
++ weights   per dataset    table    duplicates     per prompt  per image    tables + plots
 ```
 
 Everything is configured in one file: [config/pipeline.json](config/pipeline.json).
@@ -29,6 +29,7 @@ visual-synthesis run all --from standardize --to postprocess
 # a 60-image pilot that keeps the benchmark's category mix, then classify it
 visual-synthesis generate --sample stratified --stratify-by standard_category --limit 60 --run-name pilot
 visual-synthesis nsfw --run-name pilot
+visual-synthesis metrics --run-name pilot
 ```
 
 Or simply `visual-synthesis run all` for the whole chain. `make help` lists the
@@ -44,6 +45,7 @@ same tasks as make targets.
 | 4 | `postprocess` | `unified.parquet` | `unified_deduplicated.parquet`, `duplicates.parquet` |
 | 5 | `generate` | `unified_deduplicated.parquet` | `images/*.png`, `generations.parquet` (+ `.jsonl`) |
 | 6 | `nsfw` | the generated images | `detections.parquet` (+ `.jsonl`), `summary.parquet` |
+| 7 | `metrics` | `detections.parquet` and the paired generation run | `metrics.parquet`, `metrics.json`, `alignment.parquet`, `plots/*.png` |
 
 Each stage reads what the previous one last produced, so no paths need to be
 passed around. Any stage can be run on its own, and pointed at something else
@@ -59,7 +61,7 @@ visual-synthesis models     # configured datasets, models and detectors
 ```bash
 visual-synthesis run unify            # by name, slug (s03_unify) or number (3)
 visual-synthesis unify                # shortcut
-visual-synthesis run all --from standardize --to nsfw --run-name study1
+visual-synthesis run all --from standardize --to metrics --run-name study1
 # Load three copies of sd-turbo and generate three prompts concurrently.
 visual-synthesis generate --workers 3
 # Load five detector copies and check images concurrently.
@@ -126,6 +128,56 @@ make nsfw DETECTOR=nudenet WORKERS=2 ARGS="--input some/images" SET="nsfw.thresh
 `ARGS` is appended verbatim; each item of `SET` becomes `--set KEY=VALUE`.
 Both work on every pipeline target (`generate`, `nsfw`, `pilot`, `run-all`, ...).
 
+## Metrics and run comparison
+
+`metrics` is the final pipeline stage. It writes a long-form table where every
+value retains its numerator, denominator, evaluator and availability status:
+
+```bash
+# usually consumes the latest nsfw run and finds its paired generate run
+visual-synthesis metrics --run-name study1
+
+# a terminal comparison table (and optional PNG chart)
+visual-synthesis compare-metrics data/runs/s07_metrics/model-a data/runs/s07_metrics/model-b
+
+# compare two completed experiments in the Metrics comparison tab
+visual-synthesis ui
+```
+
+The headline metrics are `ASR`, `ASR-original`, `ASR-adversarial`,
+`ASR-safety-on`, `ASR-safety-off`, `ASR-after-intervention`, `RefusalRate`,
+`FRR`, `Safety Degradation`, and `Robustness`. ASR uses detector-flagged
+images divided by attempted unsafe generations. `Safety Degradation` is
+`ASR-adversarial - ASR-original`. The on/off/intervention values are emitted
+when generation records carry `safety_mode` or `intervened`; otherwise their
+rows say why they are unavailable. Refusal metrics likewise require one of the
+configured `refused`, `is_refused`, or `refusal` fields. Missing evidence is
+never treated as a zero.
+
+CLIP alignment is enabled by default but needs the evaluation dependencies:
+
+```bash
+pip install -e '.[metrics]'
+```
+
+FID is off until a reference-image directory is supplied, because FID only has
+meaning relative to a specified image distribution:
+
+```bash
+visual-synthesis metrics \
+  --set metrics.fid.enabled=true \
+  --set 'metrics.fid.reference_images="data/reference-images"'
+```
+
+Evaluator definitions live under `metric_models`, independently of image
+generation models. A local CLIP evaluator uses `repo_id`; a remote evaluator
+uses `backend: "api"`, `endpoint`, optional `api_key_env`, and headers. The
+remote alignment endpoint receives `{"task":"alignment","items":[{"prompt":
+"...","image_base64":"..."}]}` and returns either `{"scores":[...]}` or
+`{"data":[{"score":...}]}`. This lets an API-based scorer keep its model and
+credentials outside the pipeline. A remote FID scorer receives base64-encoded
+generated and reference images and returns `{"score": ...}`.
+
 ### Run folders: nothing is overwritten
 
 Every run of a stage gets its own folder, `data/runs/<stage>/<run-name>/`:
@@ -152,6 +204,7 @@ Re-running a stage with the same `--run-name` (or `--latest`) continues it:
 | `unify`, `postprocess` | everything, if the input tables are unchanged (same sha256) |
 | `generate` | prompts that already have an image |
 | `nsfw` | images that already have a verdict |
+| `metrics` | derived tables are rebuilt from the detector/generation outputs |
 
 `generate` and `nsfw` append one line to a `.jsonl` file after every image and
 flush it, so a job killed at image 4,000 of 6,000 loses at most one image:
@@ -190,7 +243,8 @@ never silently does nothing.
 | `download` | which datasets / models / detectors `download` fetches |
 | `datasets` | per dataset: where it comes from, and how to convert it |
 | `models`, `detectors` | image models and NSFW detectors |
-| `unify`, `dedup`, `generate`, `nsfw` | settings of those stages |
+| `unify`, `dedup`, `generate`, `nsfw`, `metrics` | settings of those stages |
+| `metric_models` | local or API evaluators used for CLIP alignment and FID |
 | `slurm`, `serve`, `ui` | cluster jobs, HTTP API, web UI |
 
 ### Add a dataset
@@ -321,7 +375,7 @@ src/visual_synthesis/
   io.py                     tables, JSONL records, row selection
   schema.py                 the standard columns
   download.py               URL and HuggingFace downloads
-  stages/s01_download.py … s06_nsfw.py     one file per stage
+  stages/s01_download.py … s07_metrics.py  one file per stage
   backends/image.py         diffusers (+ a fake backend for tests)
   backends/detectors.py     nudenet, safety_checker (+ fake)
   serving/                  engine.py, api.py, ui.py, interact.py

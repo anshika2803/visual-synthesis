@@ -60,7 +60,7 @@ lint:  ## Lint with ruff
 
 # --- pipeline ----------------------------------------------------------------
 
-.PHONY: validate stages run-all download standardize unify dedup generate nsfw pilot dry-run
+.PHONY: validate stages run-all download standardize unify dedup generate nsfw metrics compare-metrics pilot dry-run
 validate:  ## Check the config
 	$(VS) config validate $(foreach file,$(CONFIG),-c $(file))
 
@@ -87,6 +87,12 @@ generate:  ## Generate images: make generate MODEL=sd-xl LIMIT=100 WORKERS=3 [DT
 
 nsfw:  ## Detect NSFW content: make nsfw DETECTOR=nudenet WORKERS=5 [ARGS="--input DIR"] [SET="nsfw.threshold=0.4"]
 	$(VS) nsfw --detector $(DETECTOR) --workers $(WORKERS) $(FLAGS)
+
+metrics:  ## Extract ASR/refusal/alignment metrics and plots: make metrics [ARGS="--input DETECTIONS_RUN"]
+	$(VS) metrics $(FLAGS)
+
+compare-metrics:  ## Compare metric runs: make compare-metrics ARGS="RUN_A RUN_B"
+	$(VS) compare-metrics $(ARGS)
 
 pilot:  ## Generate a small stratified pilot: make pilot LIMIT=60
 	$(VS) generate --model $(MODEL) --sample stratified --stratify-by standard_category \

@@ -1,4 +1,4 @@
-"""The six pipeline stages, one module each.
+"""The seven pipeline stages, one module each.
 
 Every stage module has the same shape:
 
