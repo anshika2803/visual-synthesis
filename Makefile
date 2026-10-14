@@ -5,6 +5,11 @@
 
 .DEFAULT_GOAL := help
 
+# `emulate bash -c '...'` -- the virtualenv activation used by install / install-core --
+# is a zsh builtin, so recipes run under zsh when it is available. On hosts without
+# zsh the platform default /bin/sh is kept (the activation lines will fail there).
+SHELL := $(shell command -v zsh 2>/dev/null || echo /bin/sh)
+
 VS        ?= visual-synthesis
 MODEL     ?= sd-turbo
 DETECTOR  ?= nudenet
@@ -41,12 +46,37 @@ help:  ## Show this help
 
 # --- setup -------------------------------------------------------------------
 
-.PHONY: install install-core conda-env test lint
-install:  ## Install everything (models, detectors, API, UI, dev tools)
-	pip install -e ".[all]"
+# Virtualenv activated before installing (override for another interpreter):
+#   make install VENV_ACTIVATE=~/venvs/visual-synthesis/bin/activate
 
-install-core:  ## Install only what the data stages need (no torch)
+.PHONY: install install-core install-git-lfs conda-env test lint
+install: install-git-lfs  ## Install everything (models, detectors, API, UI, dev tools)
+	pip install -e ".[all]"
+# 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[all]"
+
+install-core: install-git-lfs  ## Install only what the data stages need (no torch)
 	pip install -e ".[dev]"
+# 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[dev]"
+
+install-git-lfs:  ## Install git-lfs on its own (macOS via Homebrew, Linux via apt/dnf/yum/apk/zypper/pacman)
+	@if command -v git-lfs >/dev/null 2>&1; then \
+	  echo "git-lfs: already installed ($$(git-lfs version))"; \
+	else \
+	  case $$(uname -s) in \
+	    Darwin) command -v brew >/dev/null 2>&1 || { echo "git-lfs: Homebrew not found -- install it from https://brew.sh"; exit 1; }; \
+	            brew install git-lfs ;; \
+	    Linux)  if [ $$(id -u) -eq 0 ]; then SUDO=; elif command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi; \
+	            if command -v apt-get >/dev/null 2>&1; then $$SUDO apt-get update && $$SUDO apt-get install -y git-lfs; \
+	            elif command -v dnf >/dev/null 2>&1; then $$SUDO dnf -y install git-lfs; \
+	            elif command -v yum >/dev/null 2>&1; then $$SUDO yum -y install git-lfs; \
+	            elif command -v apk >/dev/null 2>&1; then $$SUDO apk add git-lfs; \
+	            elif command -v zypper >/dev/null 2>&1; then $$SUDO zypper --non-interactive install git-lfs; \
+	            elif command -v pacman >/dev/null 2>&1; then $$SUDO pacman -S --noconfirm git-lfs; \
+	            else echo "git-lfs: no supported package manager found on this Linux host"; exit 1; fi ;; \
+	    *) echo "git-lfs: unsupported platform $$(uname -s)"; exit 1 ;; \
+	  esac; \
+	fi
+	git lfs install
 
 conda-env:  ## Build the conda environment (Linux / HPC)
 	conda env create -f conda/environment.yml
