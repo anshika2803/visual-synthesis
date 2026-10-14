@@ -30,8 +30,8 @@ env/
 # --- pipeline output ---------------------------------------------------------
 # Run directories and weights are the pipeline's data: they are versioned by the
 # run-directory scheme, not by git, and can be tens of GB.
-data/raw/
-data/runs/
+# data/raw/
+# data/runs/
 data/cache/
 models/
 logs/
