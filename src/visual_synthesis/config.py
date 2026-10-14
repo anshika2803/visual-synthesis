@@ -31,6 +31,28 @@ def find_root():
 ROOT = find_root()
 DEFAULT_CONFIG = ROOT / "config" / "pipeline.json"
 
+
+def load_dotenv(root=None):
+    """Load key=value pairs from a .env file into os.environ if not already set."""
+    path = Path(root or ROOT) / ".env"
+    if not path.is_file():
+        return
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip("'\"")
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except OSError:
+        pass
+
+
+load_dotenv(ROOT)
+
 # Values that switch NSFW detection off.
 DETECTOR_OFF = (None, "", "none", "off", "disabled")
 
@@ -204,7 +226,7 @@ MODEL_DEFAULTS = {
     "label": None,
     "backend": "diffusers",  # diffusers | fake (fake = no weights, for tests)
     "repo_id": None,
-    "family": "auto",  # auto | stable_diffusion | stable_diffusion_xl
+    "family": "auto",  # auto | stable_diffusion | stable_diffusion_xl | stable_diffusion_3
     "local_dir": None,  # folder under paths.models; defaults to the id
     "revision": None,
     "variant": None,
@@ -221,15 +243,18 @@ MODEL_DEFAULTS = {
     "enable_attention_slicing": True,
     "enable_xformers": False,
     "safety_checker": False,
+    "enable_cpu_offload": False,
     "allow_patterns": [],  # which repo files to download; empty = all
 }
 
 # One entry of `detectors`.
 DETECTOR_DEFAULTS = {
     "label": None,
-    "backend": "nudenet",  # nudenet | safety_checker | fake
+    "backend": "nudenet",  # nudenet | safety_checker | clip_h14 | fake
     "enabled": True,
     "repo_id": None,
+    "url": None,  # direct file URL (e.g. LAION h14_nsfw.pth); used with or without repo_id
+    "files": [],  # expected filenames when downloading from url
     "local_dir": None,
     "allow_patterns": [],  # which repo files to download; empty = all
     "device": "auto",

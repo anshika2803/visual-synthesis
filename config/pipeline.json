@@ -44,8 +44,8 @@
   "download": {
     "_comment": "What `visual-synthesis download` fetches. Ids refer to the sections below.",
     "datasets": ["i2p", "t2i-riskyprompt"],
-    "models": ["sd-turbo"],
-    "detectors": [],
+    "models": ["sd-3.5-medium"],
+    "detectors": ["clip-h14"],
     "force": false
   },
 
@@ -143,6 +143,88 @@
       "width": 1024,
       "height": 1024,
       "allow_patterns": ["*.json", "*.txt", "*.fp16.safetensors"]
+    },
+
+    "sd-3.5-medium": {
+      "label": "Stable Diffusion 3.5 Medium",
+      "repo_id": "stabilityai/stable-diffusion-3.5-medium",
+      "family": "stable_diffusion_3",
+      "dtype": "float16",
+      "num_inference_steps": 28,
+      "guidance_scale": 4.5,
+      "width": 1024,
+      "height": 1024,
+      "_allow_patterns": "Diffusers layout only; skip the ComfyUI single-file checkpoint.",
+      "allow_patterns": [
+        "model_index.json",
+        "scheduler/**",
+        "text_encoder/config.json",
+        "text_encoder/model.safetensors",
+        "text_encoder_2/config.json",
+        "text_encoder_2/model.safetensors",
+        "text_encoder_3/config.json",
+        "text_encoder_3/model.safetensors.index.json",
+        "text_encoder_3/model-*.safetensors",
+        "tokenizer/**",
+        "tokenizer_2/**",
+        "tokenizer_3/**",
+        "transformer/**",
+        "vae/**"
+      ]
+    },
+
+    "sd-3.5-large": {
+      "label": "Stable Diffusion 3.5 Large",
+      "repo_id": "stabilityai/stable-diffusion-3.5-large",
+      "family": "stable_diffusion_3",
+      "dtype": "bfloat16",
+      "num_inference_steps": 40,
+      "guidance_scale": 4.5,
+      "width": 1024,
+      "height": 1024,
+      "allow_patterns": [
+        "model_index.json",
+        "scheduler/**",
+        "text_encoder/config.json",
+        "text_encoder/model.safetensors",
+        "text_encoder_2/config.json",
+        "text_encoder_2/model.safetensors",
+        "text_encoder_3/config.json",
+        "text_encoder_3/model.safetensors.index.json",
+        "text_encoder_3/model-*.safetensors",
+        "tokenizer/**",
+        "tokenizer_2/**",
+        "tokenizer_3/**",
+        "transformer/**",
+        "vae/**"
+      ]
+    },
+
+    "sd-3.5-turbo": {
+      "label": "Stable Diffusion 3.5 Large Turbo",
+      "repo_id": "stabilityai/stable-diffusion-3.5-large-turbo",
+      "family": "stable_diffusion_3",
+      "dtype": "bfloat16",
+      "num_inference_steps": 4,
+      "guidance_scale": 0.0,
+      "width": 1024,
+      "height": 1024,
+      "allow_patterns": [
+        "model_index.json",
+        "scheduler/**",
+        "text_encoder/config.json",
+        "text_encoder/model.safetensors",
+        "text_encoder_2/config.json",
+        "text_encoder_2/model.safetensors",
+        "text_encoder_3/config.json",
+        "text_encoder_3/model.safetensors.index.json",
+        "text_encoder_3/model-*.safetensors",
+        "tokenizer/**",
+        "tokenizer_2/**",
+        "tokenizer_3/**",
+        "transformer/**",
+        "vae/**"
+      ]
     }
   },
 
@@ -167,6 +249,22 @@
       "repo_id": "CompVis/stable-diffusion-safety-checker",
       "allow_patterns": ["*.json", "pytorch_model.bin"],
       "threshold": 0.5
+    },
+
+    "clip-h14": {
+      "label": "CLIP ViT-H/14 NSFW detector",
+      "backend": "clip_h14",
+      "url": "https://github.com/LAION-AI/CLIP-based-NSFW-Detector/raw/main/h14_nsfw.pth",
+      "files": ["h14_nsfw.pth"],
+      "repo_id": "laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
+      "allow_patterns": ["model.safetensors", "config.json", "preprocessor_config.json"],
+      "threshold": 0.5,
+      "_comment": "Head is h14_nsfw.pth (LAION). CLIP backbone embeddings (1024-d ViT-H/14) live under clip/.",
+      "params": {
+        "clip_model": "ViT-H-14",
+        "clip_pretrained": "laion2b_s32b_b79k",
+        "head_filename": "h14_nsfw.pth"
+      }
     }
   },
 

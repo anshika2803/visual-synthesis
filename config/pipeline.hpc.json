@@ -9,7 +9,10 @@
 
   "run": { "mode": "full" },
 
-  "download": { "models": ["sd-turbo", "sd-xl"] },
+  "download": {
+    "models": ["sd-turbo", "sd-xl", "sd-3.5-medium", "sd-3.5-large", "sd-3.5-turbo"],
+    "detectors": ["clip-h14"]
+  },
 
   "generate": { "log_every": 25 },
 

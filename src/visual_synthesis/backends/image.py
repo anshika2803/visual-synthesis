@@ -36,6 +36,7 @@ PIPELINES = {
     "auto": "AutoPipelineForText2Image",
     "stable_diffusion": "StableDiffusionPipeline",
     "stable_diffusion_xl": "StableDiffusionXLPipeline",
+    "stable_diffusion_3": "StableDiffusion3Pipeline",
 }
 
 
@@ -132,7 +133,19 @@ class DiffusersBackend:
         # See _PIPELINE_LOAD_LOCK above. Keep the critical section to loading;
         # completed pipelines can still generate concurrently in worker threads.
         with _PIPELINE_LOAD_LOCK:
-            pipe = getattr(diffusers, PIPELINES[model["family"]]).from_pretrained(source, **options).to(device)
+            pipe = getattr(diffusers, PIPELINES[model["family"]]).from_pretrained(source, **options)
+            if model.get("enable_cpu_offload"):
+                import torch
+
+                pipe.enable_model_cpu_offload(device=torch.device(device))
+            else:
+                try:
+                    pipe = pipe.to(device)
+                except Exception as exc:
+                    log.warning("could not move pipeline to %s directly (%s); enabling model cpu offload", device, exc)
+                    import torch
+
+                    pipe.enable_model_cpu_offload(device=torch.device(device))
         if not model["safety_checker"] and getattr(pipe, "safety_checker", None) is not None:
             pipe.safety_checker = None
         if model["enable_attention_slicing"]:

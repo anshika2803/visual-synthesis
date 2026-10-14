@@ -161,10 +161,29 @@ def download_detector(cfg, detector_id):
     """Fetch a detector's weights, when its backend needs any."""
     detector = cfg["detectors"][detector_id]
     target = Path(cfg["paths"]["models"]) / safe_name(detector["local_dir"] or detector_id)
-    if not detector["repo_id"]:
+    if not detector.get("repo_id") and not detector.get("url"):
         # NudeNet, for example, ships its weights inside the Python package.
         return result("detector", detector_id, "skipped", target, "weights ship with the package")
-    status, path, detail = download_hf(
-        detector["repo_id"], target, allow_patterns=detector["allow_patterns"], force=cfg["download"]["force"]
-    )
-    return result("detector", detector_id, status, path, detail)
+
+    outcomes = []
+    force = cfg["download"]["force"]
+    if detector.get("url"):
+        urls = [detector["url"]] if isinstance(detector["url"], str) else list(detector["url"])
+        for u in urls:
+            status, path, detail = download_url(
+                u, target, force=force, timeout=cfg["download"].get("timeout_seconds", 600)
+            )
+            outcomes.append((status, path, detail))
+
+    if detector.get("repo_id"):
+        status, path, detail = download_hf(
+            detector["repo_id"], target, allow_patterns=detector.get("allow_patterns"), force=force
+        )
+        outcomes.append((status, path, detail))
+
+    failures = [detail for status, _, detail in outcomes if status == "failed"]
+    if failures:
+        return result("detector", detector_id, "failed", target, "; ".join(failures))
+    downloaded = any(status == "downloaded" for status, _, _ in outcomes)
+    detail = ", ".join(str(d) for _, _, d in outcomes)
+    return result("detector", detector_id, "downloaded" if downloaded else "skipped", target, detail)
