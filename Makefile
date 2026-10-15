@@ -50,11 +50,11 @@ help:  ## Show this help
 #   make install VENV_ACTIVATE=~/venvs/visual-synthesis/bin/activate
 
 .PHONY: install install-core install-git-lfs conda-env test lint
-install: install-git-lfs  ## Install everything (models, detectors, API, UI, dev tools)
+install: install-poetry install-git-lfs  ## Install everything (models, detectors, API, UI, dev tools)
 	pip install -e ".[all]"
 # 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[all]"
 
-install-core: install-git-lfs  ## Install only what the data stages need (no torch)
+install-core: install-poetry install-git-lfs  ## Install only what the data stages need (no torch)
 	pip install -e ".[dev]"
 # 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[dev]"
 
