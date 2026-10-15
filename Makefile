@@ -78,6 +78,15 @@ install-git-lfs:  ## Install git-lfs on its own (macOS via Homebrew, Linux via a
 	fi
 	git lfs install
 
+install-poetry:  ## Install Poetry (Linux / macOS)
+	@if command -v poetry >/dev/null 2>&1; then \
+	  echo "poetry: already installed ($$(poetry --version))"; \
+	else \
+	  curl -sSL https://install.python-poetry.org | python3 -; \
+	fi
+	@echo 'installing poetry shell plugin'
+	poetry self add poetry-plugin-shell
+
 conda-env:  ## Build the conda environment (Linux / HPC)
 	conda env create -f conda/environment.yml
 	@echo 'now run: conda activate visual-synthesis && pip install -e ".[all]"'
