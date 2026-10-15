@@ -357,7 +357,7 @@
   },
 
   "slurm": {
-    "conda_env": "visual-synthesis",
+    "conda_env": "visual-safety",
     "modules": ["cuda/12.1", "python/3.11"],
     "set_env": { "HF_HOME": "data/cache/huggingface", "TOKENIZERS_PARALLELISM": "false" },
     "gpu": { "partition": "gpu", "time": "04:00:00", "cpus_per_task": 8, "mem": "48G", "gres": "gpu:1" },
