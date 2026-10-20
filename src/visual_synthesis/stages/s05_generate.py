@@ -19,6 +19,7 @@ import multiprocessing
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures.process import BrokenProcessPool
+from pathlib import Path
 from threading import Lock
 
 import pandas as pd
@@ -37,6 +38,7 @@ from visual_synthesis.io import (
     write_table,
 )
 from visual_synthesis.progress import Progress
+from visual_synthesis.stage2_evaluation import image_filename
 
 log = logging.getLogger(__name__)
 
@@ -51,6 +53,8 @@ PROMPT_COLUMNS = [
     # Optional experiment annotations retained for stage 7 safety slices and
     # refusal analysis.  Missing columns are stored as null and are harmless.
     "safety_mode", "intervened", "refused", "is_refused", "refusal",
+    # Stage 2 attack provenance. These are optional, so Stage 1 remains unchanged.
+    "attack_method", "attack_config", "case_number", "evaluation_seed", "source_file",
 ]
 
 
@@ -98,8 +102,11 @@ def run(cfg, run, source=None):
     )
 
     records_file = run.path("generations.jsonl")
-    done = set() if cfg["run"]["overwrite"] else {r["prompt_id"] for r in read_jsonl(records_file)}
-    # The seed depends on the row's position, so a resumed run reproduces the same images.
+    done = set() if cfg["run"]["overwrite"] else {
+        r["prompt_id"] for r in read_jsonl(records_file) if r.get("generation_status", "success") == "success"
+    }
+    # Stage 2 carries an explicit seed per row. Stage 1 keeps the historical
+    # position-based seed behavior, which remains stable across resumed runs.
     pending = [
         (position, row)
         for position, row in enumerate(prompts.to_dict("records"))
@@ -134,7 +141,8 @@ def run(cfg, run, source=None):
     records_lock = Lock()
 
     def requests_for(batch):
-        return [make_request(row, seed + position, settings) for position, row in batch]
+        return [make_request(row, row.get("evaluation_seed") if pd.notna(row.get("evaluation_seed")) else seed + position, settings)
+                for position, row in batch]
 
     def store(batch, images):
         """Save a finished batch, append its records and tick the bar; returns the images written."""
@@ -148,12 +156,24 @@ def run(cfg, run, source=None):
         progress.advance(len(batch))
         return len(images)
 
-    def fail(requests, exc):
+    def fail(batch, requests, exc):
         """Record a failed batch (or re-raise with stop_on_error); returns its prompt ids."""
         if settings["stop_on_error"]:
             raise exc
         ids = [r["prompt_id"] for r in requests]
         log.error("generation failed for %s: %s", ids, exc)
+        row_by_id = {str(row["prompt_id"]): row for _, row in batch}
+        for request in requests:
+            row = row_by_id[str(request["prompt_id"])]
+            record = {
+                "prompt_id": str(request["prompt_id"]), "prompt": str(row["prompt"]),
+                "model": model["id"], "image_path": None, "seed": request["seed"],
+                "generation_time_s": None, "generation_status": "error", "error": str(exc), "run_id": run.id,
+            }
+            for column in PROMPT_COLUMNS:
+                record[column] = clean(row.get(column))
+            with records_lock:
+                append_jsonl(records_file, record)
         progress.advance(len(requests), failed=len(requests))
         return ids
 
@@ -162,13 +182,18 @@ def run(cfg, run, source=None):
         backend = build_image_backend(model, cfg["paths"]["models"])
         completed, failures = 0, []
         try:
-            backend.load()
+            try:
+                backend.load()
+            except Exception as exc:
+                for batch in assigned_batches:
+                    failures.extend(fail(batch, requests_for(batch), exc))
+                return completed, failures
             for batch in assigned_batches:
                 requests = requests_for(batch)
                 try:
                     images = backend.generate(requests)
                 except Exception as exc:
-                    failures.extend(fail(requests, exc))
+                    failures.extend(fail(batch, requests, exc))
                     continue
                 completed += store(batch, images)
         finally:
@@ -199,7 +224,7 @@ def run(cfg, run, source=None):
                             "a generation worker process died (out of memory?); use fewer --workers"
                         ) from exc
                     except Exception as exc:
-                        failures.extend(fail(requests, exc))
+                        failures.extend(fail(batch, requests, exc))
                         continue
                     completed += store(batch, images)
             except BaseException:
@@ -250,7 +275,12 @@ def make_request(row, seed, settings):
 def save_record(image, row, model_id, settings, run):
     """Save one image to disk and return its generation record."""
     extension = "jpg" if settings["save_format"] == "jpeg" else settings["save_format"]
-    filename = settings["image_template"].format(prompt_id=image["prompt_id"], seed=image["seed"])
+    if row.get("attack_config") is not None:
+        filename = Path(image_filename({
+            **row, "prompt_id": image["prompt_id"], "evaluation_seed": image["seed"], "model_id": model_id,
+        }, extension)).stem
+    else:
+        filename = settings["image_template"].format(prompt_id=image["prompt_id"], seed=image["seed"])
     path = run.path(settings["image_subdir"], f"{filename}.{extension}")
     save_image(image["image"], path, settings["save_format"], settings["jpeg_quality"])
     record = {
@@ -265,6 +295,8 @@ def save_record(image, row, model_id, settings, run):
         "num_inference_steps": image["steps"],
         "guidance_scale": image["guidance_scale"],
         "run_id": run.id,
+        "generation_status": "success",
+        "error": None,
     }
     for column in PROMPT_COLUMNS:
         record[column] = clean(row.get(column))
