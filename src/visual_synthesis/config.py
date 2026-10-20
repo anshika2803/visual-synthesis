@@ -173,6 +173,13 @@ DEFAULTS = {
         },
         "refusal_columns": ["refused", "is_refused", "refusal"],
     },
+    # Separate entry point and outputs for the Ring-A-Bell adversarial benchmark.
+    "stage2": {
+        "input": "data/processed/stage2/ring_a_bell_standardized.csv",
+        "output_dir": "results/stage2",
+        "smoke_cases": 3,
+        "threshold": None,
+    },
     "slurm": {
         "conda_env": "visual-synthesis",
         "modules": [],
