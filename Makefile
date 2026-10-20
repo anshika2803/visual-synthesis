@@ -29,6 +29,12 @@ DTYPE     ?=
 IMAGE     ?= visual-synthesis:local
 # CPU wheels by default; for CUDA: make docker-build TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
 TORCH_INDEX_URL ?= https://download.pytorch.org/whl/cpu
+# Conda side (HPC / peers that do not use poetry). CONDA_ENV must match the
+# `name:` in conda/environment.yml; EXTRAS is the pip extra set for conda-install:
+#   make conda-install               -> pip install -e ".[all]"
+#   make conda-install EXTRAS=dev    -> pip install -e ".[dev]"   (data stages, no torch)
+CONDA_ENV ?= visual-safety
+EXTRAS    ?= all
 
 # CONFIG="a.json b.json" becomes "-c a.json -c b.json"
 FLAGS = $(foreach file,$(CONFIG),-c $(file)) \
@@ -49,12 +55,14 @@ help:  ## Show this help
 # Virtualenv activated before installing (override for another interpreter):
 #   make install VENV_ACTIVATE=~/venvs/visual-synthesis/bin/activate
 
-.PHONY: install install-core install-git-lfs conda-env test lint
-install: install-git-lfs  ## Install everything (models, detectors, API, UI, dev tools)
+# Poetry is only needed for a poetry-managed virtualenv; conda peers skip it and
+# use conda-env / conda-install / conda-run instead (see below).
+.PHONY: install install-core install-git-lfs install-poetry install-conda conda-env conda-install conda-run test lint
+install: install-poetry install-git-lfs  ## Install everything (models, detectors, API, UI, dev tools)
 	pip install -e ".[all]"
 # 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[all]"
 
-install-core: install-git-lfs  ## Install only what the data stages need (no torch)
+install-core: install-poetry install-git-lfs  ## Install only what the data stages need (no torch)
 	pip install -e ".[dev]"
 # 	emulate bash -c '. $(VENV_ACTIVATE)' && pip install -e ".[dev]"
 
@@ -78,8 +86,10 @@ install-git-lfs:  ## Install git-lfs on its own (macOS via Homebrew, Linux via a
 	fi
 	git lfs install
 
-install-poetry:  ## Install Poetry (Linux / macOS)
-	@if command -v poetry >/dev/null 2>&1; then \
+install-poetry:  ## Install Poetry (Linux / macOS; skipped when a conda env is active)
+	@if [ -n "$${CONDA_PREFIX:-}" ]; then \
+	  echo "poetry: not needed -- conda env active ($${CONDA_PREFIX})"; \
+	elif command -v poetry >/dev/null 2>&1; then \
 	  echo "poetry: already installed ($$(poetry --version))"; \
 	else \
 	  curl -sSL https://install.python-poetry.org | python3 -; \
@@ -87,9 +97,43 @@ install-poetry:  ## Install Poetry (Linux / macOS)
 	@echo 'installing poetry shell plugin'
 	poetry self add poetry-plugin-shell
 
-conda-env:  ## Build the conda environment (Linux / HPC)
-	conda env create -f conda/environment.yml
-	@echo 'now run: conda activate visual-synthesis && pip install -e ".[all]"'
+# --- conda (Linux / HPC: peers and Slurm jobs activate conda, not poetry) ----
+#
+#   make conda-env                 # build the env from conda/environment.yml
+#   make conda-install             # pip packages + the project ("[all]")
+#   make conda-install EXTRAS=dev  # the data stages only
+#   make conda-run CMD="run all"   # run inside it, no `conda activate` needed
+
+# Fail early when CONDA_ENV does not exist yet (conda run would say something cryptic).
+# Note: no `#` here -- it would start a make comment inside a variable definition.
+conda-missing = conda env list | awk '{print $$1}' | grep -qxF "$(CONDA_ENV)" || \
+	{ echo "conda env '$(CONDA_ENV)' not found -- run: make conda-env"; exit 1; }
+
+install-conda:  ## Check conda is available (prints an install hint if not)
+	@if command -v conda >/dev/null 2>&1; then \
+	  echo "conda: $$(conda --version)"; \
+	else \
+	  echo "conda: not found -- install Miniforge (conda-forge): https://github.com/conda-forge/miniforge#quick-start-links"; \
+	  echo "       on a cluster you may only need: module load anaconda && conda init bash"; \
+	  exit 1; \
+	fi
+
+conda-env: install-conda  ## Build (or refresh) the conda environment: make conda-env [CONDA_ENV=name]
+	@if conda env list | awk '{print $$1}' | grep -qxF "$(CONDA_ENV)"; then \
+	  echo "conda env '$(CONDA_ENV)' exists -- updating from conda/environment.yml"; \
+	  conda env update -n $(CONDA_ENV) -f conda/environment.yml; \
+	else \
+	  conda env create -n $(CONDA_ENV) -f conda/environment.yml; \
+	fi
+	@echo 'now run: make conda-install   (pip packages + the project itself)'
+
+conda-install: install-conda install-git-lfs  ## Install packages into the conda env: make conda-install [EXTRAS=dev]
+	@$(conda-missing)
+	conda run --no-capture-output -n $(CONDA_ENV) pip install -e ".[$(EXTRAS)]"
+
+conda-run: install-conda  ## Run in the conda env, no activation: make conda-run CMD="run all --limit 10" (CMD defaults to visual-synthesis; CMD="pytest" works too)
+	@$(conda-missing)
+	conda run --no-capture-output -n $(CONDA_ENV) $(or $(CMD),$(VS))
 
 test:  ## Run the tests (no GPU, weights or network needed)
 	pytest

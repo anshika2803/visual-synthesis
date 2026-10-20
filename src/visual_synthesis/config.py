@@ -174,7 +174,7 @@ DEFAULTS = {
         "refusal_columns": ["refused", "is_refused", "refusal"],
     },
     "slurm": {
-        "conda_env": "visual-synthesis",
+        "conda_env": "visual-safety",
         "modules": [],
         "set_env": {},
         "log_dir": None,  # None = paths.slurm_jobs
