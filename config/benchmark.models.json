@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Layer over pipeline.json. The eight agreed models, with explicit starter settings.",
+    "These are profiling settings, not a final scientific comparison protocol.",
+    "Use native 512px for SD 1.5; 1024px for the others. Qwen is profiled at 1024px",
+    "rather than its model-card square example of 1328px. Keep production settings identical.",
+    "Download only Diffusers files; gated models require the user's existing HF access."
+  ],
+  "download": {
+    "models": ["sd-xl", "sd-3.5-large", "flux-dev", "qwen-image", "z-image-turbo", "glm-image", "pixart-sigma", "sd-1.5"]
+  },
+  "models": {
+    "sd-xl": {
+      "enable_attention_slicing": false,
+      "dtype": "float16"
+    },
+    "sd-3.5-large": {
+      "enable_attention_slicing": false
+    },
+    "flux-dev": {
+      "repo_id": "black-forest-labs/FLUX.1-dev",
+      "family": "flux",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": 3.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "text_encoder_2/**", "tokenizer/**", "tokenizer_2/**", "transformer/**", "vae/**"]
+    },
+    "qwen-image": {
+      "repo_id": "Qwen/Qwen-Image",
+      "family": "qwen_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": null,
+      "negative_prompt": " ",
+      "generation_kwargs": {"true_cfg_scale": 4.0},
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**", "processor/**"]
+    },
+    "z-image-turbo": {
+      "repo_id": "Tongyi-MAI/Z-Image-Turbo",
+      "family": "z_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 9,
+      "guidance_scale": 0.0,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**"]
+    },
+    "glm-image": {
+      "repo_id": "zai-org/GLM-Image",
+      "family": "glm_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": 1.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**", "processor/**", "vision_language_encoder/**"]
+    },
+    "pixart-sigma": {
+      "repo_id": "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+      "family": "pixart_sigma",
+      "dtype": "float16",
+      "num_inference_steps": 20,
+      "guidance_scale": 4.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**"]
+    },
+    "sd-1.5": {
+      "repo_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "family": "stable_diffusion",
+      "variant": "fp16",
+      "dtype": "float16",
+      "num_inference_steps": 30,
+      "guidance_scale": 7.5,
+      "width": 512,
+      "height": 512,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["*.json", "*.txt", "*.fp16.safetensors", "tokenizer/**", "scheduler/**"]
+    }
+  }
+}

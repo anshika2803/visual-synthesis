@@ -27,7 +27,10 @@ gpu = [
     "transformers>=4.41",
     "accelerate>=0.32",
     "safetensors>=0.4",
+    "sentencepiece>=0.2",
 ]
+# Optional live RSS sampling; without it the benchmark records the process high-water mark.
+benchmark = ["psutil>=5.9"]
 # The NudeNet detector.
 nsfw = ["nudenet>=3.4.2", "onnxruntime>=1.17"]
 # The HTTP API.
@@ -38,7 +41,7 @@ ui = ["gradio>=4.36"]
 # metrics when this extra is absent, marking CLIP/FID as unavailable.
 metrics = ["matplotlib>=3.8", "torchmetrics>=1.4", "torch-fidelity>=0.3", "transformers>=4.41"]
 dev = ["pytest>=8.2", "ruff>=0.5", "httpx>=0.27"]
-all = ["visual-synthesis[gpu,nsfw,serve,ui,metrics,dev]"]
+all = ["visual-synthesis[gpu,nsfw,serve,ui,metrics,benchmark,dev]"]
 
 [project.scripts]
 visual-synthesis = "visual_synthesis.cli:main"

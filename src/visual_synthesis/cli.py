@@ -391,6 +391,86 @@ def config_path():
 # ------------------------------------------------------------ check, export
 
 
+@cli.command("benchmark")
+@config_option
+@click.option("--model", "-m", "model_ids", multiple=True,
+              help="Model ID; repeat for your assigned pair. Default: download.models, then generate.model.")
+@click.option("--input", "-i", "input_path", type=click.Path(exists=True), help="Deduplicated prompt table/folder.")
+@click.option("--output", "-o", required=True, type=click.Path(), help="New folder for reports, images and logs.")
+@click.option("--sample-size", type=click.IntRange(min=1), default=60, show_default=True)
+@click.option("--warmup", type=click.IntRange(min=0), default=2, show_default=True)
+@click.option("--repeats", type=click.IntRange(min=1), default=3, show_default=True)
+@click.option("--target-prompts", type=click.IntRange(min=1), default=6000, show_default=True)
+@click.option("--passes", type=click.IntRange(min=1), default=1, show_default=True,
+              help="Identical full workload repetitions/seeds. Different interventions need separate pilots.")
+@click.option("--seed", type=int, default=42, show_default=True)
+@click.option("--device", type=click.Choice(["auto", "cpu", "mps", "cuda"]))
+@click.option("--cpu-offload", is_flag=True, help="Use model CPU offload; requires --device cuda.")
+@click.option("--generation-only", is_flag=True, help="Skip detection and metrics; no whole-pipeline estimate.")
+@click.option("--allow-download", is_flag=True,
+              help="Allow missing weights to download; load time may include transfer.")
+@click.option("--prepare", is_flag=True, help="Time standardize/unify/postprocess once on all existing raw data.")
+@click.option("--timeout", type=click.IntRange(min=1), default=3600, show_default=True,
+              help="Maximum seconds per model pilot.")
+@click.option("--set", "settings", multiple=True, metavar="KEY=VALUE")
+def benchmark_command(config_files, model_ids, input_path, output, generation_only, settings, **options):
+    """Measure a small real pilot and project resources for the full workload.
+
+    Uses one model copy and a fresh process per model. Weights must already be
+    cached unless --allow-download is supplied. See docs/benchmarking.md.
+    """
+    from visual_synthesis.benchmark import run_benchmark
+
+    overrides = {}
+    for setting in settings:
+        key, separator, value = setting.partition("=")
+        if not separator:
+            raise click.BadParameter("expected KEY=VALUE", param_hint="--set")
+        overrides[key] = parse_value(value)
+    cfg = load(config_files, overrides)
+    setup_logging(level="info")
+    try:
+        report = run_benchmark(cfg, model_ids or cfg["download"]["models"] or [cfg["generate"]["model"]],
+                               output, input_path, evaluate_models=not generation_only, **options)
+    except (ValueError, KeyError, FileNotFoundError, FileExistsError, RuntimeError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    print_benchmark_report(report, output)
+    if any(r["status"] != "success" or (not generation_only and
+           r.get("evaluation", {}).get("status") != "success") for r in report["models"]):
+        raise click.ClickException("some pilots/evaluators failed; inspect report.json and per-model worker.log")
+
+
+def print_benchmark_report(report, output):
+    rows = []
+    for result in report["models"]:
+        estimate = result.get("estimate")
+        if estimate:
+            full = estimate["pipeline_hours_conservative"]
+            detail = (f"{estimate['mean_seconds_per_prompt_with_io']:.2f}s/prompt; "
+                      f"generation {estimate['generation_hours']:.2f}h; ")
+            detail += f"pipeline {full:.2f}h" if full is not None else "full pipeline unavailable"
+        else:
+            detail = result.get("error", result["status"])
+        rows.append((result["model"], ("SYNTHETIC: " if result.get("synthetic") else "") + detail))
+    print_table("BENCHMARK ESTIMATES (recorded hardware only)", rows)
+    click.echo(f"Reports: {Path(output).expanduser().resolve() / 'report.json'} and summary.csv")
+    click.echo("Training: outside current scope (pretrained evaluation). Evaluation includes scaled setup costs.")
+
+
+@cli.command("benchmark-summary")
+@click.argument("reports", nargs=-1, required=True, type=click.Path(exists=True))
+@click.option("--output", "-o", required=True, type=click.Path())
+def benchmark_summary_command(reports, output):
+    """Combine team members' benchmark report.json files into a new folder."""
+    from visual_synthesis.benchmark import merge_reports
+
+    try:
+        report = merge_reports(reports, output)
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    print_benchmark_report(report, output)
+
+
 @cli.command("test-stage")
 @click.argument("stage")
 @click.option("--input", "-i", "input_path", required=True, type=click.Path(exists=True),

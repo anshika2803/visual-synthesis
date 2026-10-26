@@ -251,6 +251,7 @@ MODEL_DEFAULTS = {
     "enable_xformers": False,
     "safety_checker": False,
     "enable_cpu_offload": False,
+    "generation_kwargs": {},  # pipeline-specific arguments, e.g. Qwen's true_cfg_scale
     "allow_patterns": [],  # which repo files to download; empty = all
 }
 
@@ -323,7 +324,10 @@ ENTRY_DEFAULTS = {
 }
 
 # Dict-valued keys whose contents are free-form, so they are not typo-checked.
-FREE_FORM = {"taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters", "headers", "asr_slices"}
+FREE_FORM = {
+    "taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters", "headers", "asr_slices",
+    "generation_kwargs",
+}
 
 ENV_OVERRIDES = {
     "VS_LOG_LEVEL": "logging.level",

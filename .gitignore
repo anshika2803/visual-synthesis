@@ -39,6 +39,7 @@ logs/
 # Results: exports are derived data, but the CSVs kept for reference are small.
 results/runs/
 results/serving/
+results/benchmarks/
 results/tables/*
 !results/tables/.gitkeep
 

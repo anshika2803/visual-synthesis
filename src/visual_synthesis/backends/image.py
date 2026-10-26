@@ -37,6 +37,11 @@ PIPELINES = {
     "stable_diffusion": "StableDiffusionPipeline",
     "stable_diffusion_xl": "StableDiffusionXLPipeline",
     "stable_diffusion_3": "StableDiffusion3Pipeline",
+    "flux": "FluxPipeline",
+    "qwen_image": "QwenImagePipeline",
+    "z_image": "ZImagePipeline",
+    "glm_image": "GlmImagePipeline",
+    "pixart_sigma": "PixArtSigmaPipeline",
 }
 
 
@@ -133,7 +138,11 @@ class DiffusersBackend:
         # See _PIPELINE_LOAD_LOCK above. Keep the critical section to loading;
         # completed pipelines can still generate concurrently in worker threads.
         with _PIPELINE_LOAD_LOCK:
-            pipe = getattr(diffusers, PIPELINES[model["family"]]).from_pretrained(source, **options)
+            pipeline_name = PIPELINES[model["family"]]
+            pipeline_class = getattr(diffusers, pipeline_name, None)
+            if pipeline_class is None:
+                raise RuntimeError(f"{pipeline_name} is unavailable; upgrade diffusers and transformers for this model")
+            pipe = pipeline_class.from_pretrained(source, **options)
             if model.get("enable_cpu_offload"):
                 import torch
 
@@ -179,6 +188,11 @@ class DiffusersBackend:
             }
             if request["negative_prompt"]:
                 call["negative_prompt"] = request["negative_prompt"]
+            extras = self.model.get("generation_kwargs", {})
+            protected = set(call) & set(extras)
+            if protected:
+                raise ValueError(f"generation_kwargs cannot replace standard request fields: {sorted(protected)}")
+            call.update(extras)
 
             started = time.perf_counter()
             with torch.inference_mode():

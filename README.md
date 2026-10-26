@@ -35,6 +35,22 @@ visual-synthesis metrics --run-name pilot
 Or simply `visual-synthesis run all` for the whole chain. `make help` lists the
 same tasks as make targets.
 
+For the eight-model team's resource planning, see
+[the small-sample benchmark guide](docs/benchmarking.md). It profiles real
+generation, detection and metrics on the machine used, then projects the
+6,000-prompt workload per model:
+
+```bash
+python scripts/benchmark_resources.py -c config/pipeline.json -c config/benchmark.models.json \
+  --model sd-xl --model sd-1.5 --device cuda \
+  --sample-size 60 --warmup 2 --repeats 3 --target-prompts 6000 \
+  --output results/benchmarks/my-pair
+```
+
+Run this on an allocated GPU node after caching the selected weights and CLIP
+evaluator. Training is outside the current implementation's scope; these are
+pretrained evaluation estimates. Reports include memory, storage and failures.
+
 On conda hosts (HPC / cluster, no poetry): `make conda-env` builds the
 environment from `conda/environment.yml`, `make conda-install` pip-installs the
 project into it (`EXTRAS=dev` for the data stages only), and
