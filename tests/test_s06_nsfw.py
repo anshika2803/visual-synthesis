@@ -25,6 +25,21 @@ def test_images_are_scored_and_flagged(cfg, tmp_path):
     assert again["rows_skipped"] == 2
 
 
+def test_generation_failures_without_images_do_not_break_context_join(cfg, tmp_path):
+    from visual_synthesis.io import write_table
+
+    image = tmp_path / "one.png"
+    Image.new("RGB", (8, 8), "white").save(image)
+    write_table(pd.DataFrame([
+        {"prompt_id": "ok", "image_path": str(image), "attack_config": "K_16"},
+        {"prompt_id": "failed", "image_path": None, "attack_config": "K_38"},
+    ]), tmp_path / cfg["generate"]["output_name"])
+
+    context = s06_nsfw.load_generation_context(tmp_path, cfg)
+    assert context[image.stem]["prompt_id"] == "ok"
+    assert len(context) == 1
+
+
 def test_configured_workers_use_separate_detector_backends(cfg, tmp_path, monkeypatch):
     images = tmp_path / "images"
     images.mkdir()

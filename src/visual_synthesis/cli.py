@@ -32,7 +32,7 @@ from visual_synthesis.config import (
     parse_value,
     strip_comments,
 )
-from visual_synthesis.io import find_table, read_table
+from visual_synthesis.io import find_table, read_table, safe_name
 from visual_synthesis.log import setup_logging
 from visual_synthesis.runs import latest_run, list_runs
 from visual_synthesis.stages.s07_metrics import compare_metric_runs, plot_comparison
@@ -627,6 +627,80 @@ def clean_command(what, keep, yes, config_files):
         ("kept", len(result["kept"])),
         ("size", f"{result['freed_bytes'] / 2**20:.1f} MB"),
     ])
+
+
+@cli.command("stage2")
+@click.option("--smoke/--full", default=True, help="Run a matched-case smoke subset or the complete dataset.")
+@click.option("--cases", type=click.IntRange(min=1), help="Number of matched cases in smoke mode.")
+@click.option("--input", "input_path", type=click.Path(exists=True, dir_okay=False), help="Standardized Stage 2 CSV.")
+@click.option("--run-name", default=None, help="Run label; existing generation and detection runs resume.")
+@click.option("--model", "model_id", default=None, help="Configured model id (SD-Turbo or SDXL).")
+@click.option("--detector", "detector_id", default=None, help="Configured detector id.")
+@click.option("--set", "settings", multiple=True, metavar="KEY=VALUE", help="Override a config value.")
+@config_option
+def stage2_command(smoke, cases, input_path, run_name, model_id, detector_id, settings, config_files):
+    """Run Ring-A-Bell generation, NSFW detection and nudity-related ASR."""
+    import time
+    from datetime import datetime
+
+    from visual_synthesis import pipeline
+    from visual_synthesis.io import read_table
+    from visual_synthesis.stage2_evaluation import load_dataset, smoke_sample, write_metrics
+
+    overrides = {}
+    for setting in settings:
+        key, separator, value = setting.partition("=")
+        if not separator:
+            raise click.BadParameter(f"expected KEY=VALUE, got {setting!r}", param_hint="--set")
+        overrides[key] = parse_value(value)
+    cfg = load(config_files, overrides)
+    configured_input = Path(input_path or cfg["stage2"]["input"]).expanduser()
+    dataset_path = (configured_input if configured_input.is_absolute() else ROOT / configured_input).resolve()
+    try:
+        prompts = load_dataset(dataset_path)
+    except (OSError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    if smoke:
+        prompts = smoke_sample(prompts, cases or cfg["stage2"]["smoke_cases"])
+    label = safe_name(run_name or datetime.now().strftime("%Y%m%d-%H%M%S"))
+    model = model_id or cfg["generate"]["model"]
+    detector = detector_id or cfg["nsfw"]["detector"]
+    cfg["generate"]["model"] = model
+    cfg["nsfw"]["detector"] = detector
+    if cfg["stage2"]["threshold"] is not None:
+        cfg["nsfw"]["threshold"] = cfg["stage2"]["threshold"]
+    configured_output = Path(cfg["stage2"]["output_dir"]).expanduser()
+    output = ((configured_output if configured_output.is_absolute() else ROOT / configured_output).resolve()
+              / safe_name(model) / label)
+    cfg["paths"]["runs"] = str(output / "runs")
+
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="visual-synthesis-stage2-") as scratch:
+        input_csv = Path(scratch) / "prompts.csv"
+        prompts.to_csv(input_csv, index=False)
+        started = time.perf_counter()
+        generated = pipeline.run_stage(cfg, pipeline.s05_generate, run_name=f"{model}-{label}", input_path=input_csv)
+        if generated["status"] not in ("success", "partial"):
+            raise click.ClickException(f"generation stage failed: {generated.get('error', generated['status'])}")
+        detected = pipeline.run_stage(cfg, pipeline.s06_nsfw, run_name=f"{model}-{label}", input_path=generated["run_dir"])
+        if detected["status"] not in ("success", "partial"):
+            raise click.ClickException(f"NSFW stage failed: {detected.get('error', detected['status'])}")
+        generations = read_table(Path(generated["run_dir"]) / cfg["generate"]["output_name"])
+        detections = read_table(Path(detected["run_dir"]) / cfg["nsfw"]["output_name"])
+        threshold = cfg["stage2"]["threshold"]
+        if threshold is None:
+            detector_cfg = cfg["detectors"][detector]
+            threshold = cfg["nsfw"]["threshold"] if cfg["nsfw"]["threshold"] is not None else detector_cfg["threshold"]
+        summary = write_metrics(generations, detections, output, threshold)
+        summary["total_runtime_s"] = round(time.perf_counter() - started, 3)
+        summary["run_name"] = label
+        summary["model_id"] = model
+        summary["detector_id"] = detector
+        summary["generation_run_dir"] = generated["run_dir"]
+        summary["detection_run_dir"] = detected["run_dir"]
+        (output / "metrics_summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    print_table("STAGE 2", [(key, value) for key, value in summary.items() if not isinstance(value, (dict, list))])
+    click.echo(f"Artifacts: {output}")
 
 
 def main():

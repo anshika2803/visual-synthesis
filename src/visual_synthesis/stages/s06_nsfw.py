@@ -46,6 +46,7 @@ CONTEXT_COLUMNS = [
     # These are optional experiment annotations, but preserving them makes the
     # metrics stage able to report safety-on/off and post-intervention ASR.
     "safety_mode", "intervened", "refused", "is_refused", "refusal",
+    "attack_method", "attack_config", "case_number", "evaluation_seed", "source_file",
 ]
 
 
@@ -98,7 +99,21 @@ def run(cfg, run, source=None):
         backend = build_detector(detector, cfg["paths"]["models"])
         errors = 0
         try:
-            backend.load()
+            try:
+                backend.load()
+            except Exception as exc:
+                for path in assigned_images:
+                    record = {
+                        "image_id": path.stem, "image_path": str(path), "detector_id": detector["id"],
+                        "threshold": threshold, "detected_at": datetime.now(UTC).isoformat(),
+                        "run_id": run.id, **context.get(path.stem, {}), "status": "error",
+                        "flagged": None, "max_score": None, "labels": [], "per_class": {}, "error": str(exc),
+                    }
+                    with records_lock:
+                        append_jsonl(records_file, record)
+                    errors += 1
+                    progress.advance(1, errors=1)
+                return len(assigned_images), errors
             for path in assigned_images:
                 record = {
                     "image_id": path.stem,
@@ -123,7 +138,8 @@ def run(cfg, run, source=None):
                     log.error("detection failed for %s: %s", path.name, exc)
                     errors += 1
                     record.update(
-                        status="error", flagged=False, max_score=0.0, labels=[], per_class={}, error=str(exc)
+                        # Unknown detector outcomes must not be represented as safe.
+                        status="error", flagged=None, max_score=None, labels=[], per_class={}, error=str(exc)
                     )
                 # See generate: a lock prevents interleaved JSONL writes while
                 # retaining an on-disk record for every completed image.
@@ -177,7 +193,10 @@ def load_generation_context(source, cfg):
         return {}
     context = {}
     for row in read_table(table).to_dict("records"):
-        context[Path(row["image_path"]).stem] = {c: clean(row.get(c)) for c in CONTEXT_COLUMNS}
+        image_path = row.get("image_path")
+        if not image_path or pd.isna(image_path):
+            continue
+        context[Path(image_path).stem] = {c: clean(row.get(c)) for c in CONTEXT_COLUMNS}
     return context
 
 
