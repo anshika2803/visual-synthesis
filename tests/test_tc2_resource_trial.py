@@ -44,6 +44,28 @@ def test_space_guard_counts_headroom_and_cannot_bypass_known_quota():
     assert not support.download_capacity(snapshot(), 100, 20, float("nan"))["allowed"]
 
 
+def test_capped_sd15_attempt_does_not_claim_personal_quota_is_verified():
+    guard = support.download_capacity(snapshot(), 2742217630, 15, attempt_cap_gib=3)
+    assert guard["allowed"]
+    assert guard["personal_quota_status"] == "unknown"
+    assert guard["available_budget_bytes"] is None
+    assert guard["attempt_cap_bytes"] == 3 * support.GIB
+    assert guard["required_bytes_with_headroom"] > 2742217630
+    assert "may reject writes" in guard["reason"]
+
+
+def test_attempt_cap_does_not_override_size_filesystem_or_known_quota_limits():
+    assert not support.download_capacity(snapshot(), 4 * support.GIB, 15, attempt_cap_gib=3)["allowed"]
+    assert not support.download_capacity(snapshot(2 * support.GIB), 2742217630, 15,
+                                         attempt_cap_gib=3)["allowed"]
+    assert not support.download_capacity(snapshot(filesystem=2 * support.GIB), 2742217630, 15,
+                                         attempt_cap_gib=3)["allowed"]
+    for invalid in (0, -1, float("inf"), float("nan")):
+        assert not support.download_capacity(snapshot(), 100, 15, attempt_cap_gib=invalid)["allowed"]
+    assert not support.download_capacity(snapshot(), 100, 15, attempt_cap_gib=3,
+                                         full_selection_bytes=20 * support.GIB)["allowed"]
+
+
 def test_file_plan_avoids_duplicate_weight_formats_and_rejects_unknown_sizes():
     files = [SimpleNamespace(rfilename=name, size=size) for name, size in (
         ("model_index.json", 100), ("unet/config.json", 100),
@@ -187,6 +209,53 @@ def test_new_model_only_gets_a_download_plan_after_quota_guard(cfg, tmp_path, mo
     assert (out / "download-selection.json").exists() == (expected == "download_permitted")
 
 
+def test_capped_plan_pins_revision_and_does_not_download_weights(cfg, tmp_path, monkeypatch):
+    cfg["models"]["sd-1.5"] = {**cfg["models"]["fake"], "backend": "diffusers", "repo_id": "test/sd15"}
+    monkeypatch.setattr(support, "load_config", lambda: cfg)
+    monkeypatch.setattr(support, "storage_snapshot", lambda **kwargs: snapshot())
+    metadata = SimpleNamespace(sha="a" * 40, siblings=[
+        SimpleNamespace(rfilename="model_index.json", size=100),
+        SimpleNamespace(rfilename="unet/model.safetensors", size=2742217530)
+    ])
+    monkeypatch.setitem(sys.modules, "huggingface_hub", SimpleNamespace(
+        try_to_load_from_cache=lambda *a, **kw: None,
+        HfApi=lambda: SimpleNamespace(model_info=lambda *a, **kw: metadata)
+    ))
+    out = tmp_path / "plan"
+    out.mkdir()
+    result = support.prepare("sd-1.5", out, allow_download=True, attempt_cap_gib=3)
+    assert result["status"] == "download_permitted"
+    selection = json.loads((out / "download-selection.json").read_text())["models"]
+    assert set(selection) == {"sd-1.5"}
+    assert selection["sd-1.5"]["revision"] == "a" * 40
+    assert not (Path(cfg["paths"]["models"]) / "sd-1.5").exists()
+
+
+def test_prefetch_quota_failure_is_reported_without_fake_inference_timings(tmp_path, monkeypatch):
+    support.save({"model": "sd-1.5", "status": "download_permitted"}, tmp_path / "preparation.json")
+    support.save(snapshot(), tmp_path / "storage-before.json")
+    (tmp_path / "prefetch.log").write_text("OSError: [Errno 122] Disk quota exceeded\n")
+    monkeypatch.setattr(support, "storage_snapshot", lambda **kwargs: snapshot())
+    monkeypatch.setattr(support, "collect_accounting", lambda job_id: {"rows": []})
+    result = support.finish(tmp_path, 1, "1234")
+    assert result["failure_stage"] == "prefetch"
+    assert "quota exceeded" in result["error"]
+    assert "inference_seconds_per_prompt" not in result
+
+
+def test_successful_prefetch_does_not_hide_a_later_trial_failure(tmp_path, monkeypatch):
+    support.save({"model": "sd-1.5", "status": "download_permitted"}, tmp_path / "preparation.json")
+    support.save(snapshot(), tmp_path / "storage-before.json")
+    (tmp_path / "prefetch.log").write_text("Download completed\n")
+    (tmp_path / "prefetch-completed").touch()
+    monkeypatch.setattr(support, "storage_snapshot", lambda **kwargs: snapshot())
+    monkeypatch.setattr(support, "collect_accounting", lambda job_id: {"rows": []})
+    result = support.finish(tmp_path, 1, "1234")
+    assert result["status"] == "failed"
+    assert result.get("failure_stage") != "prefetch"
+    assert "no completed benchmark report" in result["error"]
+
+
 def test_slurm_directives_match_verified_allocation_and_head_node_is_refused():
     script = ROOT / "scripts/tc2_resource_trial.sh"
     directives = dict(line.removeprefix("#SBATCH --").split("=", 1)
@@ -200,9 +269,11 @@ def test_slurm_directives_match_verified_allocation_and_head_node_is_refused():
     assert "head node" in result.stderr
 
 
-@pytest.mark.parametrize("prepare_code,expected_exit,compute_calls", [(0, 7, 1), (20, 20, 0)])
+@pytest.mark.parametrize("prepare_code,expected_exit,compute_calls,prepare_state", [
+    (0, 7, 1, "cached"), (20, 20, 0, "blocked"), (0, 5, 0, "download_permitted")
+])
 def test_job_activates_visual_safety_and_keeps_preparation_failures(tmp_path, prepare_code,
-                                                                 expected_exit, compute_calls):
+                                                                 expected_exit, compute_calls, prepare_state):
     tools = tmp_path / "bin"
     tools.mkdir()
     base = tmp_path / "conda"
@@ -220,11 +291,14 @@ if name == "git":
 elif name == "conda" and sys.argv[1] == "info":
     print(os.environ["CONDA_BASE"])
 elif name == "python" and sys.argv[1] == "-c":
-    print("cached")
+    print(os.environ["PREPARE_STATE"])
 elif name == "python" and sys.argv[2] == "prepare":
     out = Path(sys.argv[sys.argv.index("--output") + 1])
-    out.joinpath("preparation.json").write_text('{"status":"cached"}')
+    out.joinpath("preparation.json").write_text(json.dumps({"status":os.environ["PREPARE_STATE"]}))
     sys.exit(int(os.environ["PREPARE_CODE"]))
+elif name == "python" and sys.argv[2] == "prefetch":
+    print("Disk quota exceeded")
+    sys.exit(5)
 elif name == "srun":
     sys.exit(7)
 '''
@@ -234,13 +308,17 @@ elif name == "srun":
         path.chmod(0o755)
     env = {**os.environ, "PATH": f"{tools}:{os.environ['PATH']}", "CALLS": str(log),
            "CONDA_BASE": str(base), "SLURM_JOB_ID": "1234", "VS_TRIAL_REPO": str(tmp_path),
-           "PREPARE_CODE": str(prepare_code)}
+           "PREPARE_CODE": str(prepare_code), "PREPARE_STATE": prepare_state,
+           "VS_TRIAL_ATTEMPT_CAP_GIB": "3"}
     result = subprocess.run(["bash", str(ROOT / "scripts/tc2_resource_trial.sh"), "sd-xl"],
                             env=env, capture_output=True, text=True, check=False)
     assert result.returncode == expected_exit, result.stderr
     calls = [json.loads(line) for line in log.read_text().splitlines()]
     assert ["conda", "activate", "visual-safety"] in calls
     assert len([call for call in calls if call[0] == "srun"]) == compute_calls
-    assert not any("prefetch" in call for call in calls)
+    prefetch_calls = [call for call in calls if "prefetch" in call]
+    assert len(prefetch_calls) == int(prepare_state == "download_permitted")
+    prepare_call = next(call for call in calls if call[0] == "python" and "prepare" in call)
+    assert prepare_call[prepare_call.index("--attempt-cap-gib") + 1] == "3"
     finish = next(call for call in calls if call[0] == "python" and "finish" in call)
     assert finish[finish.index("--exit-code") + 1] == str(expected_exit)

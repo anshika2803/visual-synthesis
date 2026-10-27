@@ -80,6 +80,9 @@ fi
 if [ -n "${VS_TRIAL_BUDGET_GIB:-}" ]; then
   vs_trial_prepare+=(--budget-gib "$VS_TRIAL_BUDGET_GIB")
 fi
+if [ -n "${VS_TRIAL_ATTEMPT_CAP_GIB:-}" ]; then
+  vs_trial_prepare+=(--attempt-cap-gib "$VS_TRIAL_ATTEMPT_CAP_GIB")
+fi
 python scripts/tc2_trial_support.py prepare "${vs_trial_prepare[@]}"
 vs_trial_state=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' \
   "$vs_trial_out/preparation.json")
@@ -87,10 +90,19 @@ vs_trial_state=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))[
 python scripts/benchmark_cluster.py check --model "$1" --device cuda --generation-only \
   --output "$vs_trial_out/environment-preflight.json"
 if [ "$vs_trial_state" = download_permitted ]; then
-  # Only this model, exact quota-checked file selection, no evaluator download.
-  vs_trial_run python scripts/benchmark_cluster.py prefetch \
-    -c config/pipeline.json -c config/benchmark.models.json -c config/benchmark.hpc.json \
-    -c "$vs_trial_out/download-selection.json" --model "$1" --generation-only
+  # One pinned model/file selection; record any quota failure and stop before inference.
+  echo "Prefetching only $1; progress and errors: $vs_trial_out/prefetch.log"
+  if vs_trial_run python scripts/benchmark_cluster.py prefetch \
+      -c config/pipeline.json -c config/benchmark.models.json -c config/benchmark.hpc.json \
+      -c "$vs_trial_out/download-selection.json" --model "$1" --generation-only \
+      > "$vs_trial_out/prefetch.log" 2>&1; then
+    touch "$vs_trial_out/prefetch-completed"
+    echo "Prefetch completed for $1"
+  else
+    vs_trial_prefetch_code=$?
+    tail -n 30 "$vs_trial_out/prefetch.log" >&2
+    exit "$vs_trial_prefetch_code"
+  fi
 fi
 export VS_BENCH_MODE=fit
 export VS_BENCH_SAMPLE_SIZE=2

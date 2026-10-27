@@ -154,6 +154,49 @@ you may pass `VS_TRIAL_BUDGET_GIB` as an additional cap. It represents verified
 or the amount previously recovered. The budget never overrides a smaller known
 quota or filesystem limit. No automatic cleanup/eviction is performed.
 
+### Opt-in capped attempt when quota reporting is unavailable
+
+The default remains to block unknown quota. `VS_TRIAL_ATTEMPT_CAP_GIB` is a
+separate, explicit way to attempt one small model while retaining
+`personal_quota_status: unknown`. It is not a statement of verified space.
+The guard caps the total selected model-file payload, pins the repository
+revision, and still checks filesystem headroom and any known quota/file limits.
+It does not turn filesystem-wide free space into a personal quota value.
+
+For the reported SD 1.5 plan, the model files total 2,742,217,630 bytes
+(2.55 GiB). A 3 GiB selection cap covers those files; the filesystem check still
+requires about 3.81 GiB including the default headroom. The user's unknown quota
+can reject writes even if this check passes. Such a failure is recorded in
+`prefetch.log` and `trial_summary.json`; inference will not start. No cache is
+automatically deleted and no other model is prefetched.
+
+Copy `tc2-sd15-capped-attempt.patch` into the cluster repository. Check and apply
+only the two script updates, preserving unrelated changes:
+
+```bash
+git apply --check --include=scripts/tc2_trial_support.py \
+  --include=scripts/tc2_resource_trial.sh tc2-sd15-capped-attempt.patch
+git apply --include=scripts/tc2_trial_support.py \
+  --include=scripts/tc2_resource_trial.sh tc2-sd15-capped-attempt.patch
+```
+
+If the check fails, inspect the conflict instead of replacing files. Once the
+patch is applied, the opt-in SD 1.5 submission is:
+
+```bash
+VS_TRIAL_ALLOW_DOWNLOAD=1 VS_TRIAL_ATTEMPT_CAP_GIB=3 \
+  sbatch --test-only --export=ALL --job-name=vs-sd15-fit \
+  scripts/tc2_resource_trial.sh sd-1.5
+VS_TRIAL_ALLOW_DOWNLOAD=1 VS_TRIAL_ATTEMPT_CAP_GIB=3 \
+  sbatch --parsable --export=ALL --job-name=vs-sd15-fit \
+  scripts/tc2_resource_trial.sh sd-1.5
+```
+
+Run only that one model, inspect its result, and keep larger downloads pending
+until their storage requirements can be accommodated. If a quota-uncertain
+attempt is undesirable, keep the default guard and obtain the assigned quota
+or shared-storage details from TC2 support first.
+
 ## Interpreting limits and failures
 
 - GPU peak values are PyTorch allocated/reserved peaks for the worker. They

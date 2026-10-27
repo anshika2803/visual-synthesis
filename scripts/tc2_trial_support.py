@@ -160,8 +160,9 @@ def storage_snapshot(repo=ROOT, models=None, frozen_paths=None):
     return report
 
 
-def download_capacity(storage, needed_bytes, files, budget_gib=None, reserve_gib=1):
-    """Require both filesystem space and a known user/assigned-space budget."""
+def download_capacity(storage, needed_bytes, files, budget_gib=None, reserve_gib=1, attempt_cap_gib=None,
+                      full_selection_bytes=None):
+    """Default to quota checking; optionally cap one attempt with quota explicitly unknown."""
     path = storage["paths"]["models"]
     quota = path.get("quota") or {}
     available = quota.get("available_bytes")
@@ -172,16 +173,34 @@ def download_capacity(storage, needed_bytes, files, budget_gib=None, reserve_gib
         limits.append(int(budget_gib * GIB))
     if available is not None:
         limits.append(available)
-    if budget_gib is None and available is None:
+    quota_known = available is not None or budget_gib is not None
+    if attempt_cap_gib is not None:
+        if not math.isfinite(attempt_cap_gib) or attempt_cap_gib <= 0:
+            return {"allowed": False, "reason": "attempt cap must be positive and finite"}
+        # Count the whole pinned selection: a cache file with a matching size
+        # can still be replaced if its revision/etag differs.
+        payload = needed_bytes if full_selection_bytes is None else full_selection_bytes
+        if payload > int(attempt_cap_gib * GIB):
+            return {"allowed": False, "reason": "planned download exceeds the explicit attempt cap"}
+    if not quota_known and attempt_cap_gib is None:
         return {"allowed": False,
                 "reason": "user quota is unknown; inspect mytcinfo/quota and provide a verified budget"}
     required = math.ceil(needed_bytes * 1.1) + int(reserve_gib * GIB)
     remaining = min(limits)
     inode_ok = quota.get("available_files") is None or quota["available_files"] >= files + 128
-    return {"allowed": remaining >= required and inode_ok, "required_bytes_with_headroom": required,
-            "available_budget_bytes": remaining, "quota_files_available": quota.get("available_files"),
-            "reason": "sufficient verified space" if remaining >= required and inode_ok else
-            "insufficient disk quota/free space or file quota; no weights downloaded"}
+    allowed = remaining >= required and inode_ok
+    if not allowed:
+        reason = "insufficient disk quota/free space or file quota; no weights downloaded"
+    elif quota_known:
+        reason = "sufficient verified space"
+    else:
+        reason = "single capped attempt permitted; personal quota remains unknown and may reject writes"
+    return {"allowed": allowed, "required_bytes_with_headroom": required,
+            "available_budget_bytes": remaining if quota_known else None,
+            "filesystem_free_bytes": path["filesystem_free_bytes"],
+            "personal_quota_status": "known_or_user_verified" if quota_known else "unknown",
+            "attempt_cap_bytes": int(attempt_cap_gib * GIB) if attempt_cap_gib is not None else None,
+            "quota_files_available": quota.get("available_files"), "reason": reason}
 
 
 def select_files(siblings, patterns, variant=None):
@@ -213,8 +232,9 @@ def load_config():
                         ROOT / "config/benchmark.hpc.json"])
 
 
-def prepare(model_id, out, allow_download=False, budget_gib=None):
-    state = {"model": model_id, "status": "checking", "downloads_allowed": allow_download}
+def prepare(model_id, out, allow_download=False, budget_gib=None, attempt_cap_gib=None):
+    state = {"model": model_id, "status": "checking", "downloads_allowed": allow_download,
+             "attempt_cap_gib": attempt_cap_gib}
     save(state, out / "preparation.json")
     try:
         cfg = load_config()
@@ -249,13 +269,22 @@ def prepare(model_id, out, allow_download=False, budget_gib=None):
             destination = Path(cfg["paths"]["models"]) / (model["local_dir"] or model_id)
             needed = sum(size for name, size in files.items()
                          if not (destination / name).is_file() or (destination / name).stat().st_size != size)
-            guard = download_capacity(storage, needed, len(files), budget_gib)
+            guard = download_capacity(storage, needed, len(files), budget_gib, attempt_cap_gib=attempt_cap_gib,
+                                      full_selection_bytes=sum(files.values()))
             state.update(download_plan={"repo_id": model["repo_id"], "destination": str(destination),
                                         "remaining_bytes_upper_bound": needed, "file_count": len(files),
+                                        "selected_file_bytes": sum(files.values()),
                                         "guard": guard})
             if not guard["allowed"]:
                 raise ValueError(guard["reason"]) from None
-            save({"models": {model_id: {"allow_patterns": sorted(files)}}}, out / "download-selection.json")
+            selection = {"allow_patterns": sorted(files)}
+            revision = getattr(info, "sha", None)
+            if attempt_cap_gib is not None and not revision:
+                raise ValueError("missing immutable model revision; cannot pin the capped download") from None
+            if revision:
+                selection["revision"] = revision
+                state["download_plan"]["revision"] = revision
+            save({"models": {model_id: selection}}, out / "download-selection.json")
             state["status"] = "download_permitted"
         outputs = storage["paths"]["trial_outputs"]
         output_quota = (outputs.get("quota") or {}).get("available_bytes")
@@ -308,6 +337,14 @@ def finish(out, exit_code, job_id):
             failures = [check for check in preflight.get("checks", []) if check["status"] == "error"]
             if failures:
                 summary.update(failure_stage="environment_preflight", preflight_failures=failures)
+        prefetch_log = out / "prefetch.log"
+        if prefetch_log.exists() and not (out / "prefetch-completed").exists():
+            tail = prefetch_log.read_text(errors="replace")[-4000:]
+            summary.update(failure_stage="prefetch", prefetch_log_tail=tail)
+            if "disk quota exceeded" in tail.lower():
+                summary["error"] = "storage quota exceeded while downloading this model"
+            elif "no space left on device" in tail.lower():
+                summary["error"] = "filesystem or inode space exhausted while downloading this model"
     before = json.loads((out / "storage-before.json").read_text()) if (out / "storage-before.json").exists() else None
     repo = before["paths"].get("repo", {}).get("path", str(ROOT)) if before else ROOT
     after = storage_snapshot(repo=repo, frozen_paths=before["paths"] if before else None)
@@ -354,6 +391,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-download", action="store_true")
     parser.add_argument("--budget-gib", type=float)
+    parser.add_argument("--attempt-cap-gib", type=float,
+                        help="Opt into a bounded planned download when personal quota is unknown; not a quota claim.")
     parser.add_argument("--exit-code", type=int, default=0)
     parser.add_argument("--job-id", default=os.environ.get("SLURM_JOB_ID", ""))
     args = parser.parse_args()
@@ -362,7 +401,7 @@ def main():
         save(report, args.output)
     elif args.action == "prepare":
         args.output.mkdir(parents=True, exist_ok=True)
-        report = prepare(args.model, args.output, args.allow_download, args.budget_gib)
+        report = prepare(args.model, args.output, args.allow_download, args.budget_gib, args.attempt_cap_gib)
     elif args.action == "finish":
         report = finish(args.output, args.exit_code, args.job_id)
     elif args.action == "repair-storage":
