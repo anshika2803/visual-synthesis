@@ -94,15 +94,54 @@ def parse_quota(text):
     return rows
 
 
-def storage_snapshot(repo=ROOT, models=None):
+def storage_path(entry, repo=ROOT):
+    """Use the measured canonical path, including for snapshots with relative paths."""
+    value = entry.get("usage", {}).get("resolved_path") or entry["path"]
+    path = Path(value).expanduser()
+    return (path if path.is_absolute() else Path(repo) / path).resolve()
+
+
+def storage_changes(before, after):
+    """Never subtract sizes of different directories or incomplete scans."""
+    changes, warnings = {}, {}
+    repo = before["paths"].get("repo", {}).get("path", str(ROOT))
+    for name, first in before["paths"].items():
+        second = after["paths"].get(name)
+        if second is None:
+            reason = "after snapshot is missing this path"
+        elif storage_path(first, repo) != storage_path(second, repo):
+            reason = "before and after snapshots measured different directories"
+        elif first["usage"].get("stat_errors") or second["usage"].get("stat_errors"):
+            reason = "directory scan reported errors"
+        else:
+            changes[name] = second["usage"]["allocated_bytes"] - first["usage"]["allocated_bytes"]
+            continue
+        changes[name] = None
+        warnings[name] = {"reason": reason, "before_path": str(storage_path(first, repo)),
+                          "after_path": str(storage_path(second, repo)) if second else None}
+    return changes, warnings
+
+
+def storage_snapshot(repo=ROOT, models=None, frozen_paths=None):
     repo = Path(repo).resolve()
-    models = Path(models or os.environ.get("VS_MODELS_DIR", repo / "models")).expanduser().absolute()
-    hf_home = Path(os.environ.get("HF_HOME", Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-                                  / "huggingface")).expanduser()
-    hub = Path(os.environ.get("HF_HUB_CACHE", hf_home / "hub"))
+    if frozen_paths is None:
+        # Match prepare/model loading, which imports config and reads .env.
+        # Previously `finish` did neither and silently measured another cache.
+        sys.path.insert(0, str(ROOT / "src"))
+        from visual_synthesis.config import load_dotenv
+
+        load_dotenv(repo)
+        models = models or os.environ.get("VS_MODELS_DIR", repo / "models")
+        hf_home = os.environ.get("HF_HOME", Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+                                 / "huggingface")
+        hub = os.environ.get("HF_HUB_CACHE", Path(hf_home).expanduser() / "hub")
+        paths = {"repo": repo, "models": models, "hf_home": hf_home,
+                 "hf_hub": hub, "trial_outputs": repo / "results/benchmarks"}
+        paths = {name: storage_path({"path": str(path)}, repo) for name, path in paths.items()}
+    else:
+        # Preserve physical targets even if .env, Conda or shell variables change.
+        paths = {name: storage_path(entry, repo) for name, entry in frozen_paths.items()}
     quota = command(["quota", "-w"])
-    paths = {"repo": repo, "models": models, "hf_home": hf_home,
-             "hf_hub": hub, "trial_outputs": repo / "results/benchmarks"}
     report = {"time_utc": datetime.now(UTC).isoformat(), "paths": {}, "quota_raw": quota,
               "quota_human": command(["quota", "-s"]), "mytcinfo": command(["mytcinfo"]),
               "note": "Path totals may overlap; do not sum them. Filesystem free space is not user quota."}
@@ -270,23 +309,47 @@ def finish(out, exit_code, job_id):
             if failures:
                 summary.update(failure_stage="environment_preflight", preflight_failures=failures)
     before = json.loads((out / "storage-before.json").read_text()) if (out / "storage-before.json").exists() else None
-    models = before["paths"]["models"]["path"] if before else None
-    after = storage_snapshot(models=models)
+    repo = before["paths"].get("repo", {}).get("path", str(ROOT)) if before else ROOT
+    after = storage_snapshot(repo=repo, frozen_paths=before["paths"] if before else None)
     save(after, out / "storage-after.json")
     summary["trial_output_usage"] = disk_bytes(out)
-    summary["storage_allocated_byte_changes"] = {
-        key: after["paths"][key]["usage"]["allocated_bytes"] - value["usage"]["allocated_bytes"]
-        for key, value in before["paths"].items()
-    } if before else {}
+    changes, warnings = storage_changes(before, after) if before else ({}, {})
+    summary.update(storage_allocated_byte_changes=changes, storage_comparison_warnings=warnings)
     summary["accounting"] = collect_accounting(job_id)
     summary["accounting_note"] = "Run collect after the job ends; in-job accounting may still say RUNNING."
     save(summary, out / "trial_summary.json")
     return summary
 
 
+def repair_storage(out):
+    """Preserve old measurements, invalidate mismatched deltas, and recheck the original paths."""
+    before = json.loads((out / "storage-before.json").read_text())
+    after = json.loads((out / "storage-after.json").read_text())
+    summary_path = out / "trial_summary.json"
+    original = summary_path.read_text()
+    summary = json.loads(original)
+    backup = out / "trial_summary.before-storage-repair.json"
+    if not backup.exists():
+        with backup.open("x") as handle:
+            handle.write(original)
+    changes, warnings = storage_changes(before, after)
+    repo = before["paths"].get("repo", {}).get("path", str(ROOT))
+    rechecked = storage_snapshot(repo=repo, frozen_paths=before["paths"])
+    snapshot_name = f"storage-rechecked-{datetime.now(UTC):%Y%m%dT%H%M%S%fZ}.json"
+    save(rechecked, out / snapshot_name)
+    rechecked_changes, rechecked_warnings = storage_changes(before, rechecked)
+    summary.update(storage_allocated_byte_changes=changes, storage_comparison_warnings=warnings,
+                   storage_recheck={"snapshot": snapshot_name, "allocated_byte_changes": rechecked_changes,
+                                    "warnings": rechecked_warnings,
+                                    "note": "Measured after the job; changes may include unrelated later writes."})
+    save(summary, summary_path)
+    return {"status": "repaired", "original_summary_backup": str(backup),
+            "invalidated_deltas": warnings, "recheck": summary["storage_recheck"]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["storage", "prepare", "finish", "collect"])
+    parser.add_argument("action", choices=["storage", "prepare", "finish", "collect", "repair-storage"])
     parser.add_argument("--model", choices=MODELS, default="sd-xl")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-download", action="store_true")
@@ -302,6 +365,8 @@ def main():
         report = prepare(args.model, args.output, args.allow_download, args.budget_gib)
     elif args.action == "finish":
         report = finish(args.output, args.exit_code, args.job_id)
+    elif args.action == "repair-storage":
+        report = repair_storage(args.output)
     else:
         if not args.output.is_dir():
             raise ValueError("trial directory does not exist")

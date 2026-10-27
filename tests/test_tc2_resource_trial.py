@@ -107,6 +107,57 @@ def test_finish_preserves_measured_resources_and_reports_disk_change(tmp_path, m
     assert summary["storage_allocated_byte_changes"]["models"] == 200
 
 
+def test_storage_uses_dotenv_cache_and_freezes_it_across_environment_changes(tmp_path, monkeypatch):
+    monkeypatch.delenv("HF_HOME", raising=False)
+    monkeypatch.delenv("HF_HUB_CACHE", raising=False)
+    (tmp_path / ".env").write_text("HF_HOME=data/cache/huggingface\n")
+    cache = tmp_path / "data/cache/huggingface/hub"
+    cache.mkdir(parents=True)
+    (cache / "clip.bin").write_bytes(b"cached evaluator")
+    monkeypatch.setattr(support, "command", lambda args: {"returncode": 1, "stdout": "", "stderr": ""})
+    before = support.storage_snapshot(repo=tmp_path)
+    assert before["paths"]["hf_hub"]["path"] == str(cache)
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "other-cache"))
+    after = support.storage_snapshot(repo=tmp_path, frozen_paths=before["paths"])
+    changes, warnings = support.storage_changes(before, after)
+    assert after["paths"]["hf_hub"]["path"] == str(cache)
+    assert changes["hf_hub"] == 0
+    assert not warnings
+
+
+def test_different_cache_directories_are_not_reported_as_growth():
+    before = snapshot()
+    after = snapshot()
+    after["paths"]["models"]["path"] = "/different-cache"
+    after["paths"]["models"]["usage"] = {"allocated_bytes": 16 * support.GIB}
+    changes, warnings = support.storage_changes(before, after)
+    assert changes["models"] is None
+    assert "different directories" in warnings["models"]["reason"]
+
+
+def test_historical_storage_repair_keeps_originals_and_model_measurements(tmp_path, monkeypatch):
+    before = snapshot()
+    after = snapshot()
+    after["paths"]["models"]["path"] = "/another-cache"
+    after["paths"]["models"]["usage"] = {"allocated_bytes": 16 * support.GIB}
+    support.save(before, tmp_path / "storage-before.json")
+    support.save(after, tmp_path / "storage-after.json")
+    summary = {"model": "sd-xl", "model_load_seconds": 95.23,
+               "resources": {"cuda_allocated_peak_bytes": 11258828800},
+               "storage_allocated_byte_changes": {"models": 16 * support.GIB}}
+    support.save(summary, tmp_path / "trial_summary.json")
+    original = (tmp_path / "trial_summary.json").read_text()
+    monkeypatch.setattr(support, "storage_snapshot", lambda **kwargs: before)
+    support.repair_storage(tmp_path)
+    repaired = json.loads((tmp_path / "trial_summary.json").read_text())
+    assert repaired["storage_allocated_byte_changes"]["models"] is None
+    assert repaired["storage_recheck"]["allocated_byte_changes"]["models"] == 0
+    assert repaired["model_load_seconds"] == summary["model_load_seconds"]
+    assert repaired["resources"] == summary["resources"]
+    assert (tmp_path / "trial_summary.before-storage-repair.json").read_text() == original
+    assert json.loads((tmp_path / "storage-after.json").read_text()) == after
+
+
 def test_collect_recovers_record_for_job_killed_before_exit_trap(tmp_path, monkeypatch):
     support.save({"model": "glm-image"}, tmp_path / "preparation.json")
     monkeypatch.setattr(support, "collect_accounting", lambda job_id: {"rows": [{"State": "OUT_OF_MEMORY"}]})

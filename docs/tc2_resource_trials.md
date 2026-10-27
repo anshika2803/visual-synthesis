@@ -177,3 +177,34 @@ quota or filesystem limit. No automatic cleanup/eviction is performed.
 No authentication, live quota inspection, scheduler validation or GPU results
 are claimed from local preparation. Those checks occur when these commands run
 on TC2. The job does not request resources outside the supplied limits.
+
+## Cache-accounting correction for job 47773
+
+The original preparation command imported configuration and loaded `.env`,
+selecting `data/cache/huggingface`. The original final-report command did not
+load that configuration and instead inspected `~/.cache/huggingface`. Its
+reported 14.9 GiB increase subtracted sizes of different directories and is
+invalid. SDXL's successful GPU, RAM and timing measurements are unaffected.
+There is no evidence of a new 14.9 GiB download from that size difference.
+
+The updated helper reads `.env` for standalone storage checks, freezes the
+initial scan's canonical paths for the final scan, and marks any mismatched or
+incomplete comparison unavailable. It neither relocates nor deletes caches.
+The home cache's `Qwen2.5-VL-7B-Instruct` checkpoint is preserved.
+
+Copy `tc2-cache-accounting-fix.patch` into the repository. Apply only the helper
+change after checking it against your local edits:
+
+```bash
+git apply --check --include=scripts/tc2_trial_support.py tc2-cache-accounting-fix.patch
+git apply --include=scripts/tc2_trial_support.py tc2-cache-accounting-fix.patch
+python scripts/tc2_trial_support.py repair-storage \
+  --output results/benchmarks/tc2-47773-sd-xl-uhnf02
+```
+
+If the check fails, stop and inspect the conflict rather than replacing your
+file. Repair runs metadata checks only, so it can run on the head node without
+another GPU trial. It backs up the original summary, leaves both historical
+snapshots intact, sets invalid deltas to null, and writes a separate recheck of
+the original paths. Recheck changes can include later writes and are labelled
+accordingly; they do not establish the exact disk change during the old job.
