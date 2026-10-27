@@ -28,6 +28,7 @@ gpu = [
     "accelerate>=0.32",
     "safetensors>=0.4",
     "sentencepiece>=0.2",
+    "protobuf>=4.25",
 ]
 # Optional live RSS sampling; without it the benchmark records the process high-water mark.
 benchmark = ["psutil>=5.9"]

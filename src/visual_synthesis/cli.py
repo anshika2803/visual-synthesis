@@ -404,6 +404,9 @@ def config_path():
 @click.option("--passes", type=click.IntRange(min=1), default=1, show_default=True,
               help="Identical full workload repetitions/seeds. Different interventions need separate pilots.")
 @click.option("--seed", type=int, default=42, show_default=True)
+@click.option("--sampling", type=click.Choice(["auto", "levels", "matched-cases", "category", "random"]),
+              default="auto", show_default=True,
+              help="Balance benchmark levels or preserve matched attack cases; auto detects the input.")
 @click.option("--device", type=click.Choice(["auto", "cpu", "mps", "cuda"]))
 @click.option("--cpu-offload", is_flag=True, help="Use model CPU offload; requires --device cuda.")
 @click.option("--generation-only", is_flag=True, help="Skip detection and metrics; no whole-pipeline estimate.")
@@ -452,9 +455,14 @@ def print_benchmark_report(report, output):
         else:
             detail = result.get("error", result["status"])
         rows.append((result["model"], ("SYNTHETIC: " if result.get("synthetic") else "") + detail))
+        if estimate and estimate.get("projection_status") == "provisional":
+            rows[-1] = (rows[-1][0], "PROVISIONAL: " + rows[-1][1])
     print_table("BENCHMARK ESTIMATES (recorded hardware only)", rows)
     click.echo(f"Reports: {Path(output).expanduser().resolve() / 'report.json'} and summary.csv")
     click.echo("Training: outside current scope (pretrained evaluation). Evaluation includes scaled setup costs.")
+    sampling = report.get("sampling", {})
+    if sampling.get("missing_sample_levels"):
+        click.echo(f"Missing pilot levels: {', '.join(sampling['missing_sample_levels'])}; project totals unavailable.")
 
 
 @cli.command("benchmark-summary")

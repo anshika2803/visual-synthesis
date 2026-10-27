@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Apply after pipeline.json and benchmark.models.json.",
+    "One model/detector copy, CUDA, local NudeNet and CLIP alignment.",
+    "Use an existing CUDA PyTorch environment; no partition, account, modules or CUDA version is assumed."
+  ],
+  "generate": {"workers": 1},
+  "nsfw": {"detector": "nudenet", "workers": 1, "max_error_rate": 0.0},
+  "metrics": {
+    "alignment": {"enabled": true, "model": "clip-vit-base-patch32"},
+    "fid": {"enabled": false}
+  },
+  "slurm": {"conda_env": "visual-synthesis", "modules": []}
+}

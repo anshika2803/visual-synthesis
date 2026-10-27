@@ -25,8 +25,9 @@ import numpy as np
 import pandas as pd
 
 from visual_synthesis.backends.image import build_image_backend
+from visual_synthesis.benchmark_sampling import load_prompts, sample_prompts
 from visual_synthesis.config import get_detector, get_model
-from visual_synthesis.io import append_jsonl, file_sha256, find_table, read_table, safe_name, select_rows, write_json
+from visual_synthesis.io import append_jsonl, file_sha256, find_table, read_table, safe_name, write_json
 from visual_synthesis.pipeline import find_input, run_stage
 from visual_synthesis.runs import Run, git_commit
 from visual_synthesis.stages import s02_standardize, s03_unify, s04_postprocess, s05_generate, s06_nsfw, s07_metrics
@@ -134,6 +135,12 @@ def summarize_model(result, target_prompts, passes):
         return None
     times = result["generation"]["prompt_seconds_with_io"]
     mean = float(np.mean(times))
+    mean_image_bytes = result["generation"]["mean_image_bytes"]
+    sampling = result.get("sampling", {})
+    by_level = result["generation"].get("mean_seconds_by_level", {})
+    if sampling.get("strategy") == "levels" and sampling.get("coverage_complete"):
+        mean = float(np.mean(list(by_level.values())))
+        mean_image_bytes = float(np.mean(list(result["generation"]["mean_image_bytes_by_level"].values())))
     target_images = target_prompts * passes * result["images_per_prompt"]
     # Model load and warmup occur once per pass, rather than once per prompt.
     fixed = result["load_seconds"] + result["warmup_seconds"] + result["generation"]["table_write_seconds_mean"]
@@ -153,9 +160,11 @@ def summarize_model(result, target_prompts, passes):
         "evaluation_hours_conservative": evaluation_seconds / 3600 if evaluation_seconds is not None else None,
         "pipeline_hours_conservative": (generation + evaluation_seconds) / 3600
         if evaluation_seconds is not None else None,
-        "image_storage_gib": target_images * result["generation"]["mean_image_bytes"] / 2**30,
+        "image_storage_gib": target_images * mean_image_bytes / 2**30,
         "training_hours_in_current_scope": 0,
         "training_status": "out_of_scope: pretrained evaluation; no training stage implemented",
+        "projection_status": "complete" if sampling.get("coverage_complete", True) else "provisional",
+        "missing_sample_levels": sampling.get("missing_sample_levels", []),
     }
 
 
@@ -198,6 +207,7 @@ def benchmark_worker(spec):
               "images_per_prompt": model["num_images_per_prompt"], "workers": 1,
               "batching": "sequential prompts, matching the existing image backend",
               "load_may_include_download": spec["allow_download"], "resources": {}}
+    result["sampling"] = spec.get("sampling", {})
     backend = None
     torch = None
     device = "cpu"
@@ -211,7 +221,7 @@ def benchmark_worker(spec):
             device = pick_device(model["device"], model["device_index"])
             result["resolved_dtype"] = str(pick_dtype(model["dtype"], device))
         result["machine"] = machine_info(torch, device)
-        sample = read_table(spec["sample"])
+        sample = load_prompts(spec["sample"])
         records = sample.to_dict("records")
         result["sample_prompts"] = len(records)
         backend = build_image_backend(model, cfg["paths"]["models"])
@@ -249,6 +259,7 @@ def benchmark_worker(spec):
                 del images
             result["warmup_seconds"] = time.perf_counter() - tick
             timings, inference_timings, image_sizes, table_times, repeat_seconds = [], [], [], [], []
+            prompt_levels, image_levels = [], []
             for repeat in range(spec["repeats"]):
                 run = Run(cfg, s05_generate.SLUG, run_name=f"repeat-{repeat + 1}", mode="full")
                 repeat_start = time.perf_counter()
@@ -266,7 +277,9 @@ def benchmark_worker(spec):
                         record = s05_generate.save_record(image, row, model["id"], cfg["generate"], run)
                         append_jsonl(run.path("generations.jsonl"), record)
                         image_sizes.append(Path(record["image_path"]).stat().st_size)
+                        image_levels.append(str(row.get("benchmark_level", "")))
                     timings.append(time.perf_counter() - tick)
+                    prompt_levels.append(str(row.get("benchmark_level", "")))
                     del images
                     log.info("%s repeat %d/%d prompt %d/%d: %.2fs", model["id"], repeat + 1,
                              spec["repeats"], position + 1, len(records), timings[-1])
@@ -277,8 +290,11 @@ def benchmark_worker(spec):
                 run.finish("success", {"rows_out": len(records) * model["num_images_per_prompt"]})
             result["generation"] = {
                 "prompt_seconds_with_io": timings, "prompt_seconds_inference_only": inference_timings,
+                "prompt_levels": prompt_levels,
+                "mean_seconds_by_level": pd.Series(timings).groupby(prompt_levels).mean().to_dict(),
                 "repeat_seconds": repeat_seconds, "table_write_seconds_mean": float(np.mean(table_times)),
                 "mean_image_bytes": float(np.mean(image_sizes)), "images_written": len(image_sizes),
+                "mean_image_bytes_by_level": pd.Series(image_sizes).groupby(image_levels).mean().to_dict(),
             }
             # The existing pipeline unloads generation before loading evaluators.
             backend.unload()
@@ -305,6 +321,7 @@ def benchmark_worker(spec):
 def project_summary(results, preprocessing_seconds=0):
     generated = [r for r in results if not r.get("synthetic") and r.get("estimate")]
     complete = [r for r in results if not r.get("synthetic") and r.get("estimate")
+                and r["estimate"].get("projection_status", "complete") == "complete"
                 and r["estimate"]["pipeline_hours_conservative"] is not None]
     summary = {
         "requested_models": len(results), "measured_complete_models": len(complete),
@@ -350,6 +367,8 @@ def write_reports(payload, output):
             "model": result["model"], "status": result["status"], "synthetic": result.get("synthetic", False),
             "device": result.get("machine", {}).get("device"), "gpu": result.get("machine", {}).get("gpu"),
             "load_seconds": result.get("load_seconds"),
+            "projection_status": estimate.get("projection_status"),
+            "missing_sample_levels": ";".join(estimate.get("missing_sample_levels", [])),
             "mean_seconds_per_prompt": estimate.get("mean_seconds_per_prompt_with_io"),
             "generation_hours": estimate.get("generation_hours"),
             "evaluation_hours_conservative": estimate.get("evaluation_hours_conservative"),
@@ -365,7 +384,7 @@ def write_reports(payload, output):
 
 def run_benchmark(cfg, model_ids, output, input_path=None, sample_size=60, warmup=2, repeats=3,
                   target_prompts=6000, passes=1, seed=42, evaluate_models=True, allow_download=False,
-                  device=None, cpu_offload=False, prepare=False, timeout=3600):
+                  device=None, cpu_offload=False, prepare=False, timeout=3600, sampling="auto"):
     """Run fresh subprocesses sequentially, retaining failures and partial reports."""
     if min(sample_size, repeats, target_prompts, passes, timeout) < 1 or warmup < 0:
         raise ValueError("sample size, repeats, target prompts, passes and timeout must be positive; warmup >= 0")
@@ -407,14 +426,10 @@ def run_benchmark(cfg, model_ids, output, input_path=None, sample_size=60, warmu
                 raise RuntimeError(f"preprocessing failed: {stage_result}")
             source = stage_result["run_dir"]
     source_table = find_table(source, cfg["dedup"]["output_name"])
-    frame = read_table(source_table)
-    required = {"prompt_id", "prompt"}
-    if not required.issubset(frame.columns) or frame.empty:
-        raise ValueError("input must be a nonempty prompt table with prompt_id and prompt")
-    if frame[list(required)].isna().any().any() or frame["prompt_id"].astype(str).duplicated().any():
-        raise ValueError("prompt IDs must be unique and prompt/ID values must be non-null")
-    sample = select_rows(frame, sample_size, "stratified" if "standard_category" in frame else "random",
-                         "standard_category", seed)
+    frame = load_prompts(source_table)
+    sample, sampling_info = sample_prompts(frame, sample_size, seed, sampling)
+    if sampling_info["missing_sample_levels"]:
+        log.warning("provisional projection: pilot lacks levels %s", sampling_info["missing_sample_levels"])
     sample_path = output / "sample.parquet"
     sample.to_parquet(sample_path, index=False)
     if device:
@@ -429,10 +444,11 @@ def run_benchmark(cfg, model_ids, output, input_path=None, sample_size=60, warmu
         for name in model_ids:
             local_cfg["models"][name]["enable_cpu_offload"] = True
     payload = {
-        "schema_version": 1, "created_at": datetime.now(UTC).isoformat(), "git_commit": git_commit(),
+        "schema_version": 2, "created_at": datetime.now(UTC).isoformat(), "git_commit": git_commit(),
         "source_table": str(source_table), "source_sha256": file_sha256(source_table), "dataset_rows": len(frame),
         "sample_sha256": file_sha256(sample_path), "sample_size": len(sample), "seed": seed,
         "warmup": warmup, "repeats": repeats, "target_prompts": target_prompts, "passes": passes,
+        "sampling": sampling_info,
         "evaluation_protocol": {"enabled": evaluate_models, "nsfw": cfg["nsfw"], "metrics": cfg["metrics"]},
         "preprocessing": preprocessing, "models": [],
         "assumptions": [
@@ -456,7 +472,8 @@ def run_benchmark(cfg, model_ids, output, input_path=None, sample_size=60, warmu
         model_output.mkdir()
         spec = {"config": local_cfg, "model": name, "output": str(model_output), "sample": str(sample_path),
                 "warmup": warmup, "repeats": repeats, "seed": seed, "target_prompts": target_prompts,
-                "passes": passes, "evaluate": evaluate_models, "allow_download": allow_download}
+                "passes": passes, "evaluate": evaluate_models, "allow_download": allow_download,
+                "sampling": sampling_info}
         log.info("benchmarking %s; live log: %s", name, model_output / "worker.log")
         with tempfile.TemporaryDirectory(prefix="vs-benchmark-") as scratch:
             spec_path = Path(scratch) / "spec.json"
@@ -493,8 +510,9 @@ def merge_reports(paths, output):
         raise ValueError("supply at least one report.json")
     reference = reports[0]
     for report in reports[1:]:
-        for key in ("source_sha256", "sample_sha256", "seed", "target_prompts", "passes", "evaluation_protocol"):
-            if report[key] != reference[key]:
+        for key in ("source_sha256", "sample_sha256", "seed", "target_prompts", "passes", "evaluation_protocol",
+                    "sampling"):
+            if report.get(key) != reference.get(key):
                 raise ValueError(f"reports disagree on {key}; use the same input, pilot sample and target workload")
     models = [r for report in reports for r in report["models"]]
     if len({r["model"] for r in models}) != len(models):

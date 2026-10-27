@@ -51,6 +51,12 @@ Run this on an allocated GPU node after caching the selected weights and CLIP
 evaluator. Training is outside the current implementation's scope; these are
 pretrained evaluation estimates. Reports include memory, storage and failures.
 
+For TC2, use the [cluster quickstart](docs/cluster_benchmark.md): it covers
+dependency constraints, prefetching your assigned pair, GPU preflight, the job
+wrapper and restoration of legacy inputs from the tracked candidate manifest.
+The pilot balances benchmark levels, preserves attack seeds and marks
+projections provisional while levels are missing.
+
 On conda hosts (HPC / cluster, no poetry): `make conda-env` builds the
 environment from `conda/environment.yml`, `make conda-install` pip-installs the
 project into it (`EXTRAS=dev` for the data stages only), and

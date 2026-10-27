@@ -1,0 +1,7 @@
+{
+  "_comment": "CUDA execution override for the Stage 2 commands documented in docs/stage2_adversarial_evaluation.md.",
+  "models": {"sd-turbo": {"device": "cuda"}, "sd-xl": {"device": "cuda"}},
+  "generate": {"workers": 1},
+  "nsfw": {"detector": "nudenet", "workers": 1},
+  "slurm": {"conda_env": "visual-synthesis", "modules": []}
+}

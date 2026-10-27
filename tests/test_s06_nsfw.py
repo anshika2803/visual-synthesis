@@ -103,3 +103,19 @@ def test_only_the_metal_safety_checker_is_not_thread_safe(monkeypatch):
     assert not detectors.supports_threads({"backend": "safety_checker", "device": "auto"})
     monkeypatch.setattr(device, "pick_device", lambda preference, index=None: "cpu")
     assert detectors.supports_threads({"backend": "safety_checker", "device": "auto"})
+
+
+def test_detector_error_remains_unknown_and_does_not_break_progress(cfg, tmp_path, monkeypatch):
+    image = tmp_path / "image.png"
+    Image.new("RGB", (8, 8), "white").save(image)
+
+    def fail(self, path):
+        raise RuntimeError("detector failed")
+
+    monkeypatch.setattr(FakeDetector, "detect", fail)
+    result = run_stage(cfg, s06_nsfw, input_path=image)
+    assert result["status"] == "partial"
+    assert result["errors"] == 1
+    row = pd.read_parquet(f"{result['run_dir']}/detections.parquet").iloc[0]
+    assert pd.isna(row.flagged)
+    assert pd.isna(row.max_score)

@@ -1,5 +1,8 @@
 # Resource and runtime pilot for the eight-model project
 
+For pull/install/prefetch commands, input restoration and a TC2 GPU job wrapper,
+start with [the cluster quickstart](cluster_benchmark.md).
+
 The implemented project evaluates **pretrained** text-to-image models:
 standardize → unify → deduplicate → generate → NSFW detection → metrics.
 There is no training loop, optimizer, training image dataset, LoRA, or learned
@@ -138,10 +141,14 @@ python scripts/benchmark_resources.py \
 ```
 
 This generates 182 requests per model: two warmups plus three repeats of the
-same 60 sampled prompts. Seeds are deterministic and shared across models.
-Sampling is stratified by `standard_category` when present, random otherwise;
-60 covers the current table's 39 category combinations better than a tiny fit
-test. Detection and enabled metrics run on the final repeat, after generation
+same 60 sampled prompts. Explicit `evaluation_seed` values are preserved across
+repeats; other rows get deterministic fallback seeds. `--sampling auto` balances
+recognized levels with category coverage inside levels. Stage 2-only inputs
+retain matched attack cases. Select explicitly with
+`--sampling levels|matched-cases|category|random`. Missing levels make projections
+provisional and suppress complete project totals. Complete level pilots weight
+level means equally, matching the planned 1,000 prompts per level.
+Detection and enabled metrics run on the final repeat, after generation
 is unloaded. Defaults follow `pipeline.json`: NudeNet detection, CLIP alignment,
 FID disabled. Keep detector/evaluator choices identical to production.
 
@@ -216,7 +223,7 @@ RSS lifetime high-water mark is also recorded. Allow headroom above measurements
 
 ## Combine the four members' reports
 
-Use the same prompt table, sample size, seed, target prompt count, and number of
+Use the same prompt table, sampling strategy, sample size, seed, target prompt count, and number of
 passes. Copy the four `report.json` files to distinct local filenames, then run:
 
 ```bash
@@ -245,6 +252,14 @@ The sampled Metal driver peak was about 4.32 GiB. This tiny run validates the
 harness; SD-Turbo is **not one of the selected eight**, and these timings do not
 predict their speeds or memory use. Its reports are under
 `results/benchmarks/cached-control-pipeline-mac/` (ignored by Git).
+
+## Cluster update, 27 October 2026
+
+The TC2 wrapper uses the merged Phase E1 candidate manifest. It contains 14,223
+candidates and no L2 rows; the final 6,000-prompt benchmark remains incomplete.
+The cluster helper restores existing Stage 2 metadata and can export the missing
+legacy L1/Ring-A-Bell CSVs. It checks inputs, imports, CUDA and cached model
+components before timed runs. See [the cluster quickstart](cluster_benchmark.md).
 
 ## Official model references
 

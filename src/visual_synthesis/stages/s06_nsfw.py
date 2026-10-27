@@ -145,7 +145,7 @@ def run(cfg, run, source=None):
                 # retaining an on-disk record for every completed image.
                 with records_lock:
                     append_jsonl(records_file, record)
-                progress.advance(1, errors=int(record["status"] == "error"), flagged=int(record["flagged"]))
+                progress.advance(1, errors=int(record["status"] == "error"), flagged=int(bool(record["flagged"])))
         finally:
             backend.unload()
         return len(assigned_images), errors

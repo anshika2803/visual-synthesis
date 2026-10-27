@@ -141,8 +141,7 @@ def run(cfg, run, source=None):
     records_lock = Lock()
 
     def requests_for(batch):
-        return [make_request(row, row.get("evaluation_seed") if pd.notna(row.get("evaluation_seed")) else seed + position, settings)
-                for position, row in batch]
+        return [make_request(row, seed + position, settings) for position, row in batch]
 
     def store(batch, images):
         """Save a finished batch, append its records and tick the bar; returns the images written."""
@@ -260,6 +259,8 @@ def run(cfg, run, source=None):
 
 def make_request(row, seed, settings):
     """The backend request for one prompt row. None settings fall back to the model's own."""
+    if pd.notna(row.get("evaluation_seed")):
+        seed = int(row["evaluation_seed"])
     return {
         "prompt_id": str(row["prompt_id"]),
         "prompt": str(row["prompt"]),
@@ -275,10 +276,10 @@ def make_request(row, seed, settings):
 def save_record(image, row, model_id, settings, run):
     """Save one image to disk and return its generation record."""
     extension = "jpg" if settings["save_format"] == "jpeg" else settings["save_format"]
-    if row.get("attack_config") is not None:
+    if pd.notna(row.get("attack_config")) and str(row["attack_config"]).strip():
         filename = Path(image_filename({
             **row, "prompt_id": image["prompt_id"], "evaluation_seed": image["seed"], "model_id": model_id,
-        }, extension)).stem
+        }, model_id, extension)).stem
     else:
         filename = settings["image_template"].format(prompt_id=image["prompt_id"], seed=image["seed"])
     path = run.path(settings["image_subdir"], f"{filename}.{extension}")

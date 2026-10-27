@@ -1,0 +1,6 @@
+# Pins for the pipeline APIs checked in the development environment.
+# Keep the cluster's compatible CUDA PyTorch/torchvision build; these do not pin CUDA.
+# Install with: python -m pip install -e '.[gpu,nsfw,metrics,benchmark]' -c requirements/benchmark-cluster.txt
+diffusers==0.41.0
+transformers==5.20.1
+accelerate==1.15.0
