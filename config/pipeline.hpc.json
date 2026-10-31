@@ -20,6 +20,8 @@
 
   "slurm": {
     "log_dir": "slurm/jobs",
+    "gpu": { "partition": "MGPU-TC2" },
+    "cpu": { "partition": "MGPU-TC2" },
     "set_env": {
       "HF_HOME": "data/cache/huggingface",
       "TOKENIZERS_PARALLELISM": "false",
