@@ -1,8 +1,9 @@
 """Prepare and audit a balanced 6,000-prompt benchmark without inventing examples.
 
-Only records from the local, already-standardized L1 and Ring-A-Bell inputs are
-accepted automatically. L0/L2/L3/L4 and supplemental L6 rows require an
-explicit ``review_status=approved`` in their supplied CSV.
+Records from the local, already-standardized L1 and Ring-A-Bell inputs are
+preselected as candidates; this is not human validation. L0/L2/L3/L4 and
+supplemental L6 rows require an explicit ``review_status=approved`` in their
+supplied table.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 
 from visual_synthesis.config import load_config
-from visual_synthesis.io import read_table
+from visual_synthesis.io import read_table, write_tabular
 from visual_synthesis.schema import (
     BENCHMARK_LEVELS, STANDARD_COLUMNS, TRANSFORMATIONS,
     content_hash, normalize_prompt, split_categories,
@@ -165,13 +166,13 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
     l1 = l1.drop_duplicates("prompt", keep="first", ignore_index=True)
     l1 = _stratified_sample(l1, TARGET, seed)
 
-    ring = pd.read_csv(ring_path, keep_default_na=False, dtype=str)
+    ring = read_table(ring_path).fillna("")
     ring = _canonicalize(ring, "L6", approved_only=False, source_name="Ring-A-Bell", seed=seed)
     frames = [l1, ring]
     input_counts = {"L1": len(l1), "L6": len(ring)}
     review = []
     for level, path in extra_inputs:
-        candidate = pd.read_csv(path, keep_default_na=False, dtype=str)
+        candidate = read_table(path).fillna("")
         approved_rows = candidate[candidate.apply(lambda row: _approved(row, level), axis=1)]
         approved = _canonicalize(approved_rows, level, approved_only=False,
                                  source_name=Path(path).stem, seed=seed)
@@ -222,6 +223,7 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
     for col in STANDARD_COLUMNS:
         if col not in candidates:
             candidates[col] = ""
+    candidates["source_id"] = candidates["source_id"].astype(str)
     ordered = STANDARD_COLUMNS + [c for c in candidates.columns if c not in STANDARD_COLUMNS and not c.startswith("_")]
     candidates = candidates[ordered]
     distribution = (candidates.groupby(["benchmark_level", "source_dataset", "standard_category", "risk_level"],
@@ -234,7 +236,7 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
             category for value in candidates["standard_category"] for category in split_categories(value)
         ).items())),
         "risk_level_counts": {str(k): int(v) for k, v in candidates["risk_level"].value_counts(dropna=False).items()},
-        "input_approved_counts": input_counts,
+        "input_eligible_counts": input_counts,
         "shortfalls": missing, "excess_before_cap": excess,
         "exact_duplicate_rows_excluded": len(exact_duplicates),
         "near_duplicate_pairs_reported": len(near), "near_duplicate_threshold": 0.9,
@@ -242,9 +244,11 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
         "parent_references_valid": not any("parent" in x.get("issue", "") for x in issues),
         "all_levels_reach_1000": valid_for_final,
         "complete_benchmark_written": valid_for_final,
-        "limitations": [
-            "This run creates a candidate manifest only; no unified_benchmark_6000.csv is written.",
+        "limitations": ([
+            "This run creates a candidate manifest only; no unified_benchmark_6000.parquet is written."
+        ] if not valid_for_final else []) + [
             "Acquired COCO/Nibbler candidates remain unreviewed and are not counted toward the benchmark.",
+            "The preselected L1 and Ring-A-Bell rows are source candidates, not human-validated by this command.",
             "L2/L3/L4 and supplemental L6 require human-approved rows with provenance and parent IDs.",
             "Ring-A-Bell prompt-data licensing needs resolution before redistribution.",
             "Near-duplicate detection uses token-set Jaccard and reports pairs for human review.",
@@ -252,20 +256,20 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
     }
     if not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
-        candidates.to_csv(output_dir / "benchmark_6000_candidates.csv", index=False)
-        distribution.to_csv(output_dir / "benchmark_6000_candidates_distribution.csv", index=False)
+        write_tabular(candidates, output_dir / "benchmark_6000_candidates.parquet")
+        write_tabular(distribution, output_dir / "benchmark_6000_candidates_distribution.parquet")
         review_columns = STANDARD_COLUMNS + ["review_status", "review_reason"]
         review_frame = pd.DataFrame(review)
         for col in review_columns:
             if col not in review_frame:
                 review_frame[col] = ""
-        review_frame.to_csv(output_dir / "benchmark_6000_candidates_review.csv", index=False)
-        exact_duplicates.to_csv(output_dir / "benchmark_6000_exact_duplicates_excluded.csv", index=False)
-        pd.DataFrame(near).to_csv(output_dir / "benchmark_6000_near_duplicates.csv", index=False)
+        write_tabular(review_frame, output_dir / "benchmark_6000_candidates_review.parquet")
+        write_tabular(exact_duplicates, output_dir / "benchmark_6000_exact_duplicates_excluded.parquet")
+        write_tabular(pd.DataFrame(near), output_dir / "benchmark_6000_near_duplicates.parquet")
         (output_dir / "benchmark_6000_candidates_audit.json").write_text(
             json.dumps(audit, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         if valid_for_final:
-            candidates.to_csv(output_dir / "unified_benchmark_6000.csv", index=False)
+            write_tabular(candidates, output_dir / "unified_benchmark_6000.parquet")
     return audit
 
 
@@ -278,7 +282,7 @@ def main(argv=None):
     parser.add_argument("--output-dir", default="data/processed/unified")
     parser.add_argument("--l1", default=None)
     parser.add_argument("--ring-a-bell", default=None)
-    parser.add_argument("--input", action="append", default=[], metavar="LEVEL=CSV",
+    parser.add_argument("--input", action="append", default=[], metavar="LEVEL=TABLE",
                         help="reviewed source input for L0/L2/L3/L4/L6; rows need review_status=approved")
     args = parser.parse_args(argv)
     cfg = load_config([args.config])
@@ -286,7 +290,7 @@ def main(argv=None):
     for spec in args.input:
         level, sep, path = spec.partition("=")
         if not sep or level not in {"L0", "L2", "L3", "L4", "L6"}:
-            parser.error(f"invalid --input {spec!r}; expected L0/L2/L3/L4/L6=CSV")
+            parser.error(f"invalid --input {spec!r}; expected L0/L2/L3/L4/L6=TABLE")
         extras.append((level, path))
     audit = prepare(l1_path=args.l1 or cfg["benchmark"]["l1_input"],
                     ring_path=args.ring_a_bell or cfg["datasets"]["ring-a-bell"]["input_table"], extra_inputs=extras,

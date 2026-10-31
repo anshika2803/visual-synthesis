@@ -14,6 +14,7 @@ from urllib.parse import quote
 import pandas as pd
 
 from visual_synthesis.config import DEFAULTS
+from visual_synthesis.io import write_tabular
 from visual_synthesis.schema import (
     BENCHMARK_LEVELS, RISK_LEVELS, STANDARD_COLUMNS, content_hash, normalize_prompt,
     risk_level as risk_for_categories, split_categories, validate_table,
@@ -535,13 +536,13 @@ def build_unified_candidates(*, l1_path: Path, coco_path: Path, nibbler_path: Pa
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     reports_dir.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(output_path, index=False)
-    exact_groups.to_csv(reports_dir / "exact_duplicate_lineage.csv", index=False)
-    near_pairs.to_csv(reports_dir / "near_duplicate_pairs.csv", index=False)
-    issues.to_csv(reports_dir / "metadata_issues.csv", index=False)
+    write_tabular(frame, output_path)
+    write_tabular(exact_groups, reports_dir / "exact_duplicate_lineage.parquet")
+    write_tabular(near_pairs, reports_dir / "near_duplicate_pairs.parquet")
+    write_tabular(issues, reports_dir / "metadata_issues.parquet")
     distributions = _distributions(frame)
     for name, table in distributions.items():
-        table.to_csv(reports_dir / f"distribution_{name}.csv", index=False)
+        write_tabular(table, reports_dir / f"distribution_{name}.parquet")
 
     l1 = _read_csv(l1_path)
     ring = _read_csv(ring_path)
@@ -605,25 +606,25 @@ def _write_readme_report(audit: dict, reports_dir: Path) -> None:
               f"- Metadata issues: {sum(audit['metadata_issue_counts'].values()):,}.",
               "- Proposed and validated level/category fields are separate. Only the D1 validated export sets `human_validated=true`.",
               "- This is a candidate manifest; no final 6,000-prompt benchmark is assembled.", "",
-              "See adjacent `distribution_*.csv`, `exact_duplicate_lineage.csv`, `near_duplicate_pairs.csv`, and `metadata_issues.csv` for detail."]
+              "See adjacent `distribution_*.parquet`, `exact_duplicate_lineage.parquet`, `near_duplicate_pairs.parquet`, and `metadata_issues.parquet` for detail."]
     (reports_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--l1", type=Path, default=Path("data/runs/s04_postprocess/real1/unified_deduplicated.parquet"))
-    parser.add_argument("--coco", type=Path, default=Path("data/processed/benchmark_prep/phase_c/coco_l0_candidates.csv"))
-    parser.add_argument("--nibbler", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/nibbler_submitted_candidates_corrected.csv"))
-    parser.add_argument("--ring-a-bell", type=Path, default=Path("data/processed/standardized/ring-a-bell.csv"))
-    parser.add_argument("--review-master", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/review_master.csv"))
-    parser.add_argument("--validated", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/validated/validated_candidates.csv"))
-    parser.add_argument("--selected", type=Path, default=Path("data/processed/unified/benchmark_6000_candidates.csv"))
+    parser.add_argument("--coco", type=Path, default=Path("data/processed/benchmark_prep/phase_c/coco_l0_candidates.parquet"))
+    parser.add_argument("--nibbler", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/nibbler_submitted_candidates_corrected.parquet"))
+    parser.add_argument("--ring-a-bell", type=Path, default=Path("data/processed/standardized/ring-a-bell.parquet"))
+    parser.add_argument("--review-master", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/review_master.parquet"))
+    parser.add_argument("--validated", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/validated/validated_candidates.parquet"))
+    parser.add_argument("--selected", type=Path, default=Path("data/processed/unified/benchmark_6000_candidates.parquet"))
     parser.add_argument("--phase-c-audit", type=Path, default=Path("data/processed/benchmark_prep/phase_c/phase_c_audit.json"))
     parser.add_argument("--phase-d2-audit", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/phase_d2_audit.json"))
     parser.add_argument("--phase-d2-review-audit", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/review_batch_audit.json"))
     parser.add_argument("--phase-d2-validated-audit", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/validated/accepted_counts.json"))
     parser.add_argument("--selected-audit", type=Path, default=Path("data/processed/unified/benchmark_6000_candidates_audit.json"))
-    parser.add_argument("--output", type=Path, default=Path("data/processed/unified/unified_prompt_candidates.csv"))
+    parser.add_argument("--output", type=Path, default=Path("data/processed/unified/unified_prompt_candidates.parquet"))
     parser.add_argument("--reports-dir", type=Path, default=Path("data/processed/unified/unified_prompt_candidates_reports"))
     parser.add_argument("--near-threshold", type=float, default=0.9)
     args = parser.parse_args(argv)

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from visual_synthesis.io import read_table
+from visual_synthesis.io import read_table, write_tabular
 from visual_synthesis.phase_c_candidates import LEVELS, RISK_CATEGORIES
 from visual_synthesis.phase_d1_review import (
     DECISIONS, REVIEW_FIELDS, _duplicate_diagnostics, _preserve_decisions,
@@ -25,7 +25,7 @@ REVIEW_METADATA_FIELDS = tuple(REVIEW_FIELDS) + ("reviewed_at",)
 
 
 def _read(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path, keep_default_na=False, dtype=str)
+    frame = read_table(path).fillna("").astype(str)
     if "candidate_id" not in frame:
         raise ValueError(f"{path} has no candidate_id")
     if frame.candidate_id.astype(str).duplicated().any():
@@ -63,7 +63,7 @@ def select_batch(master_path: Path, output_path: Path, *, batch_size: int = 75,
         selected = selected.loc[mask]
     selected = selected.sort_values("candidate_id", kind="mergesort").iloc[offset:offset + batch_size]
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    selected.to_csv(output_path, index=False)
+    write_tabular(selected, output_path)
     return {"batch_rows": len(selected), "batch_size": batch_size, "filters": {
         "proposed_level": level or "all", "source": source or "all", "category": category or "all",
         "offset": offset, "include_uncertain": include_uncertain}, "output": str(output_path)}
@@ -103,7 +103,7 @@ def merge_batch(master_path: Path, batch_path: Path, *, output_path: Path | None
                 master.at[idx, field] = value
                 changed += 1
     target.parent.mkdir(parents=True, exist_ok=True)
-    master.to_csv(target, index=False)
+    write_tabular(master, target)
     return {"master_rows": len(master), "batch_rows": len(batch), "review_fields_merged": changed,
             "output": str(target)}
 
@@ -112,7 +112,7 @@ def extend_master(master_path: Path, standardized_candidates_path: Path,
                   output_path: Path | None = None, *, near_threshold: float = 0.9) -> dict:
     """Append preselected L1/L6 source candidates without treating them as reviewed."""
     master = _read(master_path)
-    source = pd.read_csv(standardized_candidates_path, keep_default_na=False, dtype=str)
+    source = read_table(standardized_candidates_path).fillna("").astype(str)
     required = {"prompt_id", "prompt", "benchmark_level", "source_dataset", "standard_category"}
     if required - set(source):
         raise ValueError(f"standardized candidate source missing columns: {sorted(required - set(source))}")
@@ -148,9 +148,9 @@ def extend_master(master_path: Path, standardized_candidates_path: Path,
     combined, preservation = _preserve_decisions(combined, previous_path)
     target = output_path or master_path
     target.parent.mkdir(parents=True, exist_ok=True)
-    combined.to_csv(target, index=False)
-    pd.DataFrame(near_pairs, columns=["candidate_id_a", "candidate_id_b", "token_jaccard", "threshold"]).to_csv(
-        target.with_name("duplicate_pairs.csv"), index=False)
+    write_tabular(combined, target)
+    write_tabular(pd.DataFrame(near_pairs, columns=["candidate_id_a", "candidate_id_b", "token_jaccard", "threshold"]),
+                  target.with_name("duplicate_pairs.parquet"))
     by_level = combined.loc[combined.candidate_id.str.startswith("STD_")].proposed_level.value_counts().to_dict()
     return {"added_rows": len(addition), "added_by_level": {str(k): int(v) for k, v in by_level.items()},
             "master_rows": len(combined), "near_duplicate_pairs": len(near_pairs),
@@ -248,7 +248,7 @@ def make_pilot_plan(l1_path: Path, output_path: Path, *, per_level: int = 25, se
                          "quality_review_criteria": criteria, "decision": "", "reviewer_id": "",
                          "validated": False, "status": "planned_not_generated"})
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(rows).to_csv(output_path, index=False)
+    write_tabular(pd.DataFrame(rows), output_path)
     return {"per_level": per_level, "planned_rows": len(rows), "parent_count": len(chosen),
             "parents_by_primary_category": dict(Counter(category for category, _ in chosen)),
             "generated_prompt_rows": 0, "validated_rows": 0, "output": str(output_path)}
@@ -295,7 +295,7 @@ def main(argv=None) -> int:
     extend.add_argument("--output", type=Path); extend.add_argument("--near-threshold", type=float, default=0.9)
     dashboard = sub.add_parser("dashboard")
     dashboard.add_argument("--master", type=Path, required=True); dashboard.add_argument("--output", type=Path)
-    dashboard.add_argument("--validated", type=Path, help="Phase D1 validated_candidates.csv export")
+    dashboard.add_argument("--validated", type=Path, help="Phase D1 validated_candidates.parquet export")
     dashboard.add_argument("--format", choices=("markdown", "json"), default="markdown")
     pilot = sub.add_parser("pilot-plan")
     pilot.add_argument("--l1", type=Path, required=True); pilot.add_argument("--output", type=Path, required=True)

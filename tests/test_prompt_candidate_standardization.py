@@ -59,11 +59,11 @@ def test_manifest_maps_sources_without_validating_pending_candidates(tmp_path):
     ]).to_csv(review, index=False)
     pd.DataFrame(columns=["candidate_id", "validated", "validated_level", "standard_category"]).to_csv(validated, index=False)
 
-    output, reports = tmp_path / "unified.csv", tmp_path / "reports"
+    output, reports = tmp_path / "unified.parquet", tmp_path / "reports"
     audit = build_unified_candidates(l1_path=l1, coco_path=coco, nibbler_path=nib, ring_path=ring,
                                      review_path=review, validated_path=validated, output_path=output,
                                      reports_dir=reports, near_threshold=0.9)
-    result = pd.read_csv(output, keep_default_na=False, dtype=str)
+    result = pd.read_parquet(output).fillna("").astype(str)
     assert CANDIDATE_COLUMNS[:len(STANDARD_COLUMNS)] == STANDARD_COLUMNS
     assert set(STANDARD_COLUMNS).issubset(result.columns)
     assert len(result) == 4
@@ -97,10 +97,10 @@ def test_manifest_maps_sources_without_validating_pending_candidates(tmp_path):
     assert set(audit["input_checksums"]) >= {"standardized_l1", "coco_candidates", "corrected_nibbler_candidates",
                                               "ring_a_bell_standardized", "phase_d2_review_master"}
     assert len(audit["output_integrity"]["sha256"]) == 64
-    metadata_issues = pd.read_csv(reports / "metadata_issues.csv", keep_default_na=False)
+    metadata_issues = pd.read_parquet(reports / "metadata_issues.parquet")
     assert ((metadata_issues.prompt_id == "NIB_hash") & (metadata_issues.field == "risk_level")).any()
-    assert (reports / "distribution_by_review_status.csv").exists()
-    assert (reports / "metadata_issues.csv").exists()
+    assert (reports / "distribution_by_review_status.parquet").exists()
+    assert (reports / "metadata_issues.parquet").exists()
 
     reviewed = pd.read_csv(review, keep_default_na=False, dtype=str)
     reviewed.loc[reviewed.candidate_id.eq("NIB_hash"), ["decision", "validated_level", "standard_category",
@@ -111,8 +111,8 @@ def test_manifest_maps_sources_without_validating_pending_candidates(tmp_path):
                    "standard_category": "violence"}]).to_csv(validated, index=False)
     approved = build_unified_candidates(l1_path=l1, coco_path=coco, nibbler_path=nib, ring_path=ring,
                                         review_path=review, validated_path=validated,
-                                        output_path=tmp_path / "approved.csv", reports_dir=tmp_path / "approved_reports")
-    approved_rows = pd.read_csv(tmp_path / "approved.csv", keep_default_na=False, dtype=str)
+                                        output_path=tmp_path / "approved.parquet", reports_dir=tmp_path / "approved_reports")
+    approved_rows = pd.read_parquet(tmp_path / "approved.parquet").fillna("").astype(str)
     approved_nib = approved_rows[approved_rows.prompt_id.eq("NIB_hash")].iloc[0]
     assert approved["human_validated_rows"] == 1
     assert approved_nib.human_validated == "True"

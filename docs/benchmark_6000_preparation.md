@@ -3,18 +3,20 @@
 ## Current status
 
 The preparation command writes a **candidate** manifest and a machine-readable
-shortfall audit. It writes `unified_benchmark_6000.csv` only when all six levels
-contain 1,000 validated, unique prompts and required metadata checks pass.
+shortfall audit. It writes `unified_benchmark_6000.parquet` only when all six levels
+contain 1,000 eligible, unique prompts and required metadata checks pass.
+The preselected L1 and Ring-A-Bell rows are source candidates; this command
+does not establish their human validation.
 Current local source inventory:
 
-| Level | Local usable records | Status |
+| Level | Preselected source rows | Status |
 |---|---:|---|
-| L0 | 0 reviewed | COCO acquisition/review still needed |
-| L1 | 1,000 sampled from 10,892 unique rows | available |
+| L0 | 0 reviewed | COCO candidates acquired; review needed |
+| L1 | 1,000 sampled from 10,892 unique rows | source selected; not human reviewed |
 | L2 | 0 reviewed | approved parent-linked variants needed |
 | L3 | 0 reviewed | approved obfuscated variants needed |
 | L4 | 0 reviewed | contextual examples needed |
-| L6 | 285 Ring-A-Bell prompts | 715 short; source data license needs resolution |
+| L6 | 285 Ring-A-Bell prompts | 715 short; not human reviewed; source data license needs resolution |
 
 The values above reflect the local audit. The run-specific JSON audit reports
 the actual counts and any changes. It also retains Ring-A-Bell attack metadata,
@@ -56,16 +58,16 @@ python scripts/prepare_benchmark_6000.py --dry-run --seed 42
 python scripts/prepare_benchmark_6000.py --validate-only --seed 42
 ```
 
-The command defaults to the existing local L1 and Ring-A-Bell CSVs. Add reviewed
-data using repeatable `--input LEVEL=CSV` options, for example:
+The command defaults to the existing local L1 and Ring-A-Bell Parquet tables. Add reviewed
+data using repeatable `--input LEVEL=TABLE` options, for example:
 
 ```bash
 python scripts/prepare_benchmark_6000.py --seed 42 \
-  --input L0=data/curated/benign_reviewed.csv \
-  --input L2=data/curated/paraphrases_reviewed.csv
+  --input L0=data/curated/benign_reviewed.parquet \
+  --input L2=data/curated/paraphrases_reviewed.parquet
 ```
 
-An imported CSV must include the standard prompt fields. L2/L3/L4 rows require
+An imported table must include the standard prompt fields. L2/L3/L4 rows require
 the correct `transformation`, `parent_prompt_id`, `transformation_method`,
 `transformation_parameters`, and explicit `review_status=approved`. The parent
 must resolve to a row in the candidate set. The `split` is derived from parent ID (or the row ID
@@ -76,10 +78,10 @@ when any benchmark level is short; this is expected with the current inventory.
 
 The default output directory is `data/processed/unified/`:
 
-- `benchmark_6000_candidates.csv`
+- `benchmark_6000_candidates.parquet`
 - `benchmark_6000_candidates_audit.json`
-- `benchmark_6000_candidates_distribution.csv`
-- `benchmark_6000_candidates_review.csv`
+- `benchmark_6000_candidates_distribution.parquet`
+- `benchmark_6000_candidates_review.parquet`
 - exact-duplicate exclusions and near-duplicate review pairs
 
 All outputs are newly named candidate artifacts. Existing generation, detector,

@@ -1,6 +1,6 @@
 # Phase E1 unified prompt candidates
 
-Phase E1 writes `data/processed/unified/unified_prompt_candidates.csv` using the
+Phase E1 writes `data/processed/unified/unified_prompt_candidates.parquet` using the
 canonical columns in `visual_synthesis.schema.STANDARD_COLUMNS`, followed by
 explicit candidate/review extensions. The canonical field `prompt` holds the
 prompt text. `proposed_benchmark_level` and `proposed_standard_category` retain
@@ -23,7 +23,7 @@ PYTHONPATH=src python scripts/standardize_prompt_candidates.py
 The command reads existing local files only. It writes the requested candidate
 manifest and a separate report directory at
 `data/processed/unified/unified_prompt_candidates_reports/`. The Ring-A-Bell
-input is `data/processed/standardized/ring-a-bell.csv`. Inputs can be
+input is `data/processed/standardized/ring-a-bell.parquet`. Inputs can be
 overridden with `--l1`, `--coco`, `--nibbler`, `--ring-a-bell`,
 `--review-master`, `--validated`, and `--selected`. Use `--near-threshold 0.9`
 to select the near-duplicate Jaccard threshold. The audit records input
@@ -37,7 +37,7 @@ PYTHONPATH=src pytest -q tests/test_prompt_candidate_standardization.py
 
 ## Contributor submission format
 
-Contributors should provide one CSV row per source prompt. Use the canonical
+Contributors should provide one row per source prompt in Parquet. Use the canonical
 field names and conventions below; keep a stable source identifier and never
 reuse an existing prompt ID.
 

@@ -355,6 +355,8 @@ visual-synthesis slurm submit generate --array                      # one array 
 GPU stages use `slurm.gpu` resources, the others `slurm.cpu`. Layer
 `config/pipeline.hpc.json` on top for cluster settings:
 `-c config/pipeline.json -c config/pipeline.hpc.json`.
+The `make slurm-render` and `make slurm-submit` targets pass both files by
+default; set `CONFIG` to override that pair.
 
 ## Docker
 

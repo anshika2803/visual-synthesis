@@ -1,6 +1,6 @@
 # Phase D2 review operations
 
-Phase D2 adds CSV-sized review batches, a merge operation that preserves source
+Phase D2 adds small review batches, a merge operation that preserves source
 evidence, a read-only progress report, and a pilot plan. It does not construct
 the final benchmark or transform prompts.
 
@@ -15,8 +15,8 @@ source candidates in the review master, append them before opening batches:
 
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py extend-master \
-  --master data/processed/benchmark_prep/phase_d2/review_master.csv \
-  --standardized-candidates data/processed/unified/benchmark_6000_candidates.csv
+  --master data/processed/benchmark_prep/phase_d2/review_master.parquet \
+  --standardized-candidates data/processed/unified/benchmark_6000_candidates.parquet
 ```
 
 This adds rows to the separate review master, recomputes duplicate diagnostics,
@@ -25,8 +25,8 @@ or treat those source examples as human-reviewed.
 
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py select-batch \
-  --master data/processed/benchmark_prep/phase_d2/review_master.csv \
-  --output data/processed/benchmark_prep/phase_d2/batches/l1_batch_001.csv \
+  --master data/processed/benchmark_prep/phase_d2/review_master.parquet \
+  --output data/processed/benchmark_prep/phase_d2/batches/l1_batch_001.parquet \
   --batch-size 75 --level L1
 ```
 
@@ -38,10 +38,14 @@ them eligible for follow-up. The batch has all source and duplicate evidence
 columns. Fill `decision` (`accept`, `reject`, `uncertain`) and the reviewer
 fields, then merge:
 
+For a spreadsheet editor, export the selected Parquet batch to a temporary
+CSV, edit it, and pass the temporary CSV as `--batch`. The merge writes the
+canonical review master as Parquet.
+
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py merge-batch \
-  --master data/processed/benchmark_prep/phase_d2/review_master.csv \
-  --batch data/processed/benchmark_prep/phase_d2/batches/l1_batch_001.csv
+  --master data/processed/benchmark_prep/phase_d2/review_master.parquet \
+  --batch data/processed/benchmark_prep/phase_d2/batches/l1_batch_001.parquet
 ```
 
 Nonempty reviewer fields replace the corresponding master fields; blank batch
@@ -51,7 +55,7 @@ the batch. Accepted decisions enter a validated manifest only after D1 checks:
 
 ```bash
 PYTHONPATH=src python scripts/phase_d1_review.py validate \
-  --review-csv data/processed/benchmark_prep/phase_d2/review_master.csv \
+  --review-csv data/processed/benchmark_prep/phase_d2/review_master.parquet \
   --output-dir data/processed/benchmark_prep/phase_d2/validated \
   --l1 data/runs/s04_postprocess/real1/unified_deduplicated.parquet
 ```
@@ -60,8 +64,8 @@ Read-only Markdown progress (include the D1 export to count validated rows):
 
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py dashboard \
-  --master data/processed/benchmark_prep/phase_d2/review_master.csv \
-  --validated data/processed/benchmark_prep/phase_d2/validated/validated_candidates.csv
+  --master data/processed/benchmark_prep/phase_d2/review_master.parquet \
+  --validated data/processed/benchmark_prep/phase_d2/validated/validated_candidates.parquet
 ```
 
 ## Review and transformation notes
@@ -79,7 +83,7 @@ Suggested pilot plan (planning only, no prompts generated):
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py pilot-plan \
   --l1 data/runs/s04_postprocess/real1/unified_deduplicated.parquet \
-  --output data/processed/benchmark_prep/phase_d2/transformation_pilot_plan.csv \
+  --output data/processed/benchmark_prep/phase_d2/transformation_pilot_plan.parquet \
   --per-level 25 --seed 42
 ```
 

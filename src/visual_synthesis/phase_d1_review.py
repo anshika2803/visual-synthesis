@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from visual_synthesis.io import read_table
+from visual_synthesis.io import read_table, write_tabular
 from visual_synthesis.phase_c_candidates import LEVELS, RISK_CATEGORIES
 from visual_synthesis.schema import normalize_prompt, split_categories
 
@@ -121,7 +121,7 @@ def _preserve_decisions(fresh: pd.DataFrame, previous_path: Path | None) -> tupl
     if previous_path is None or not previous_path.exists():
         fresh["candidate_available"] = True
         return fresh, {"preserved_decisions": 0, "stale_review_rows_retained": 0, "new_candidate_rows": len(fresh)}
-    previous = pd.read_csv(previous_path, keep_default_na=False, dtype=str)
+    previous = read_table(previous_path).fillna("").astype(str)
     # Phase D2 may keep review timestamps and an edit-history field alongside
     # the standard D1 review columns. Carry those through candidate refreshes.
     auxiliary_review_fields = [field for field in ("reviewed_at", "review_evidence") if field in previous]
@@ -167,18 +167,18 @@ def prepare_review_batch(*, coco_path: Path, nibbler_path: Path, output_path: Pa
                          previous_path: Path | None = None, near_threshold: float = 0.9) -> dict:
     if not 0 <= near_threshold <= 1:
         raise ValueError("near_threshold must be between 0 and 1")
-    coco = pd.read_csv(coco_path, keep_default_na=False, dtype=str)
-    nibbler = pd.read_csv(nibbler_path, keep_default_na=False, dtype=str)
+    coco = read_table(coco_path).fillna("").astype(str)
+    nibbler = read_table(nibbler_path).fillna("").astype(str)
     candidates = _frame_from_candidates(coco, nibbler)
     if candidates.candidate_id.astype(str).duplicated().any():
         raise ValueError("candidate manifests have duplicate candidate_id values")
     candidates, duplicate_pairs = _duplicate_diagnostics(candidates, near_threshold)
     review, preservation = _preserve_decisions(candidates, previous_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    review.to_csv(output_path, index=False)
-    duplicate_path = output_path.with_name("duplicate_pairs.csv")
-    pd.DataFrame(duplicate_pairs, columns=["candidate_id_a", "candidate_id_b", "token_jaccard", "threshold"]).to_csv(
-        duplicate_path, index=False)
+    write_tabular(review, output_path)
+    duplicate_path = output_path.with_name("duplicate_pairs.parquet")
+    write_tabular(pd.DataFrame(duplicate_pairs, columns=["candidate_id_a", "candidate_id_b", "token_jaccard", "threshold"]),
+                  duplicate_path)
     exact_group_count = int(review.exact_duplicate_group.astype(bool).sum())
     audit = {
         "candidate_rows": len(candidates), "review_batch_rows": len(review),
@@ -200,7 +200,7 @@ def _parse_categories(value: str) -> set[str]:
 
 def validate_review_batch(review_path: Path, *, output_dir: Path,
                           l1_path: Path | None = None) -> dict:
-    review = pd.read_csv(review_path, keep_default_na=False, dtype=str)
+    review = read_table(review_path).fillna("").astype(str)
     required = {"candidate_id", "prompt", "source_dataset", *REVIEW_FIELDS}
     missing = sorted(required - set(review.columns))
     if missing:
@@ -320,9 +320,9 @@ def validate_review_batch(review_path: Path, *, output_dir: Path,
     accepted_columns = list(review.columns) + ["validated", "validation_status", "human_review_required"]
     accepted_frame = pd.DataFrame(accepted, columns=list(dict.fromkeys(accepted_columns)))
     output_dir.mkdir(parents=True, exist_ok=True)
-    accepted_frame.to_csv(output_dir / "validated_candidates.csv", index=False)
+    write_tabular(accepted_frame, output_dir / "validated_candidates.parquet")
     issues_frame = pd.DataFrame(issues, columns=["candidate_id", "severity", "issue"])
-    issues_frame.to_csv(output_dir / "review_validation_issues.csv", index=False)
+    write_tabular(issues_frame, output_dir / "review_validation_issues.parquet")
     counts_level = accepted_frame.groupby("validated_level").size().to_dict() if len(accepted_frame) else {}
     counts_source = accepted_frame.groupby("source_dataset").size().to_dict() if len(accepted_frame) else {}
     category_counts = Counter(category for value in accepted_frame.get("standard_category", [])
@@ -342,8 +342,8 @@ def validate_review_batch(review_path: Path, *, output_dir: Path,
         "validation_issue_count": len(issues),
         "near_duplicate_pairs_are_review_warnings_not_automatic_rejections": True,
         "final_6000_benchmark_created": False,
-        "outputs": {"accepted": str(output_dir / "validated_candidates.csv"),
-                    "issues": str(output_dir / "review_validation_issues.csv")},
+        "outputs": {"accepted": str(output_dir / "validated_candidates.parquet"),
+                    "issues": str(output_dir / "review_validation_issues.parquet")},
     }
     (output_dir / "accepted_counts.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary

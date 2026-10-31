@@ -45,9 +45,9 @@ def test_partial_inputs_report_shortfall_without_final_file(tmp_path):
     assert audit["counts_per_level"]["L6"] == 3
     assert audit["shortfalls"]["L6"] == 997
     assert not audit["all_levels_reach_1000"]
-    assert (tmp_path / "out" / "benchmark_6000_candidates.csv").exists()
-    assert not (tmp_path / "out" / "unified_benchmark_6000.csv").exists()
-    saved = pd.read_csv(tmp_path / "out" / "benchmark_6000_candidates.csv")
+    assert (tmp_path / "out" / "benchmark_6000_candidates.parquet").exists()
+    assert not (tmp_path / "out" / "unified_benchmark_6000.parquet").exists()
+    saved = pd.read_parquet(tmp_path / "out" / "benchmark_6000_candidates.parquet")
     assert set(ring.prompt_id).issubset(set(saved.prompt_id))
     assert {"attack_method", "attack_config", "case_number", "evaluation_seed"}.issubset(saved.columns)
     assert saved.prompt_id.nunique() == len(saved)
@@ -77,7 +77,7 @@ def test_unapproved_transform_is_review_only_and_not_counted(tmp_path):
     audit = prepare(l1_path=paths[0], ring_path=paths[1], extra_inputs=[("L2", paths[2])],
                     output_dir=tmp_path / "out", seed=42)
     assert audit["counts_per_level"]["L2"] == 0
-    review = pd.read_csv(tmp_path / "out" / "benchmark_6000_candidates_review.csv")
+    review = pd.read_parquet(tmp_path / "out" / "benchmark_6000_candidates_review.parquet")
     assert review.loc[0, "prompt_id"] == "child"
     assert review.loc[0, "review_status"] == "pending"
     assert audit["parent_references_valid"]

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from visual_synthesis.io import read_table
+from visual_synthesis.io import read_table, write_tabular
 from visual_synthesis.schema import normalize_prompt
 
 LEVELS = ("L0", "L1", "L2", "L3", "L4", "L6")
@@ -449,9 +449,9 @@ def prepare_phase_c(*, coco_train: Path, coco_val: Path, nibbler_root: Path,
     coco, coco_audit = prepare_coco_candidates(coco_train, coco_val, seed=seed)
     nibbler, nibbler_audit = prepare_nibbler_candidates(nibbler_root, l1_path=l1_path)
     reviews = review_template(pd.concat([coco, nibbler], ignore_index=True, sort=False))
-    coco.to_csv(output_dir / "coco_l0_candidates.csv", index=False)
-    nibbler.to_csv(output_dir / "nibbler_submitted_candidates.csv", index=False)
-    reviews.to_csv(output_dir / "human_review_template.csv", index=False)
+    write_tabular(coco, output_dir / "coco_l0_candidates.parquet")
+    write_tabular(nibbler, output_dir / "nibbler_submitted_candidates.parquet")
+    write_tabular(reviews, output_dir / "human_review_template.parquet")
     validated = pd.DataFrame()
     review_issues = []
     review_rows_processed = 0
@@ -461,13 +461,13 @@ def prepare_phase_c(*, coco_train: Path, coco_val: Path, nibbler_root: Path,
             l1_source = read_table(l1_path)
             if {"prompt_id", "standard_category"}.issubset(l1_source.columns):
                 parent_categories = dict(zip(l1_source.prompt_id.astype(str), l1_source.standard_category.astype(str)))
-        submitted_reviews = pd.read_csv(review_path, keep_default_na=False, dtype=str)
+        submitted_reviews = read_table(review_path).fillna("").astype(str)
         review_rows_processed = len(submitted_reviews)
         validated, review_issues = validate_human_reviews(
             pd.concat([coco, nibbler], ignore_index=True, sort=False), submitted_reviews,
             parent_categories=parent_categories,
         )
-        validated.to_csv(output_dir / "human_validated_candidates.csv", index=False)
+        write_tabular(validated, output_dir / "human_validated_candidates.parquet")
         (output_dir / "human_review_validation_issues.json").write_text(
             json.dumps(review_issues, indent=2) + "\n", encoding="utf-8")
     validated_counts = {level: int((validated.candidate_level == level).sum()) if len(validated) else 0

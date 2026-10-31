@@ -114,7 +114,7 @@
 
     "ring-a-bell": {
       "label": "ring-a-bell",
-      "input_table": "data/processed/standardized/ring-a-bell.csv",
+      "input_table": "data/processed/standardized/ring-a-bell.parquet",
       "benchmark_level": "L6",
       "transformation": "adversarial"
     }

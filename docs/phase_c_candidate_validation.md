@@ -27,7 +27,7 @@ reviewer ID and confidence from 0 to 1. Non-L0 candidates also need an approved
 risk category. L2/L3/L4 additionally need a parent prompt ID, transformation
 method, transformation parameters, and a parent category that matches the
 variant category. Rerun the script with `--reviews <filled-review.csv>` to
-write `human_validated_candidates.csv` and review issues separately. If a
+write `human_validated_candidates.parquet` and review issues separately. If a
 parent comes from the existing L1 file, pass it with `--l1` so parent category
 preservation can be checked. Human approval remains responsible for checking
 semantics, taxonomy, duplicates, licensing constraints, and parent provenance.

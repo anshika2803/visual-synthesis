@@ -72,7 +72,7 @@ def test_only_complete_accepts_export_and_counts_are_grouped(tmp_path):
     rows.loc[rows.candidate_id == "dup", "decision"] = "reject"
     rows.to_csv(batch, index=False)
     summary = validate_review_batch(batch, output_dir=tmp_path / "accepted")
-    accepted = pd.read_csv(tmp_path / "accepted" / "validated_candidates.csv", keep_default_na=False)
+    accepted = pd.read_parquet(tmp_path / "accepted" / "validated_candidates.parquet")
     assert set(accepted.candidate_id) == {"c0", "n1"}
     assert summary["accepted_by_level"] == {level: int(level in {"L0", "L1"}) for level in LEVELS}
     assert summary["accepted_by_source"] == {"Adversarial_Nibbler": 1, "COCO_Captions_2017": 1}
@@ -94,7 +94,7 @@ def test_exact_duplicate_acceptances_are_blocked(tmp_path):
         ]
     rows.to_csv(batch, index=False)
     summary = validate_review_batch(batch, output_dir=tmp_path / "accepted")
-    accepted = pd.read_csv(tmp_path / "accepted" / "validated_candidates.csv")
+    accepted = pd.read_parquet(tmp_path / "accepted" / "validated_candidates.parquet")
     assert accepted.empty
     assert summary["validation_issue_count"] == 2
 

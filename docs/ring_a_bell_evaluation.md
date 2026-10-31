@@ -1,7 +1,7 @@
 # Ring-A-Bell evaluation in the main pipeline
 
 The acquired Ring-A-Bell raw CSVs live in `data/raw/ring-a-bell/`. The existing
-285-row standardized table is `data/processed/standardized/ring-a-bell.csv`.
+285-row standardized table is `data/processed/standardized/ring-a-bell.parquet`.
 Its `attack_config`, `case_number`, `evaluation_seed`, and `source_file` fields
 are retained by stages 2 through 7. The raw prompt data's redistribution
 terms still need confirmation before publishing this branch.
@@ -57,7 +57,7 @@ visual-synthesis metrics --run-name ring-a-bell-sd-turbo --mode incremental \
   --input data/runs/s06_nsfw/sd-turbo-ring-a-bell-sd-turbo \
   -c config/pipeline.json -c config/pipeline.hpc.json \
   --set metrics.generations_input=data/runs/s05_generate/sd-turbo-ring-a-bell-sd-turbo \
-  --set metrics.prompts_input=data/processed/standardized/ring-a-bell.csv \
+  --set metrics.prompts_input=data/processed/standardized/ring-a-bell.parquet \
   --set metrics.alignment.enabled=false
 ```
 
