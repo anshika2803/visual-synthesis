@@ -35,6 +35,12 @@ visual-synthesis metrics --run-name pilot
 Or simply `visual-synthesis run all` for the whole chain. `make help` lists the
 same tasks as make targets.
 
+On conda hosts (HPC / cluster, no poetry): `make conda-env` builds the
+environment from `conda/environment.yml`, `make conda-install` pip-installs the
+project into it (`EXTRAS=dev` for the data stages only), and
+`make conda-run CMD="run all"` runs anything inside it without `conda activate`.
+Rendered Slurm jobs activate that same environment themselves.
+
 ## The stages
 
 | # | Stage | Reads | Writes (in its run folder) |
