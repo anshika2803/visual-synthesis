@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from visual_synthesis.config import load_config
+from visual_synthesis.io import read_table
 from visual_synthesis.schema import (
     BENCHMARK_LEVELS, STANDARD_COLUMNS, TRANSFORMATIONS,
     content_hash, normalize_prompt, split_categories,
@@ -155,7 +157,7 @@ def _metadata_issues(frame):
 
 def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run=False):
     output_dir = Path(output_dir)
-    l1 = pd.read_csv(l1_path, keep_default_na=False, dtype=str)
+    l1 = read_table(l1_path).fillna("")
     l1 = l1[l1["benchmark_level"].astype(str).eq("L1")].copy()
     l1 = _canonicalize(l1, "L1", approved_only=False, source_name="unified_benchmark_l1", seed=seed)
     # The unified L1 file is the deduplicated source of record. Remove exact
@@ -242,7 +244,7 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
         "complete_benchmark_written": valid_for_final,
         "limitations": [
             "This run creates a candidate manifest only; no unified_benchmark_6000.csv is written.",
-            "COCO/Nibbler acquisition was not performed pending user approval.",
+            "Acquired COCO/Nibbler candidates remain unreviewed and are not counted toward the benchmark.",
             "L2/L3/L4 and supplemental L6 require human-approved rows with provenance and parent IDs.",
             "Ring-A-Bell prompt-data licensing needs resolution before redistribution.",
             "Near-duplicate detection uses token-set Jaccard and reports pairs for human review.",
@@ -269,23 +271,25 @@ def prepare(*, l1_path, ring_path, extra_inputs=(), output_dir, seed=42, dry_run
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="config/pipeline.json", help="pipeline config (accepted for command consistency)")
+    parser.add_argument("--config", default="config/pipeline.json", help="pipeline config")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dry-run", action="store_true", help="audit inputs without writing output")
     parser.add_argument("--validate-only", action="store_true", help="validate and report without writing output")
     parser.add_argument("--output-dir", default="data/processed/unified")
-    parser.add_argument("--l1", default="data/processed/unified/unified_benchmark_l1.csv")
-    parser.add_argument("--ring-a-bell", default="data/processed/stage2/ring_a_bell_standardized.csv")
+    parser.add_argument("--l1", default=None)
+    parser.add_argument("--ring-a-bell", default=None)
     parser.add_argument("--input", action="append", default=[], metavar="LEVEL=CSV",
                         help="reviewed source input for L0/L2/L3/L4/L6; rows need review_status=approved")
     args = parser.parse_args(argv)
+    cfg = load_config([args.config])
     extras = []
     for spec in args.input:
         level, sep, path = spec.partition("=")
         if not sep or level not in {"L0", "L2", "L3", "L4", "L6"}:
             parser.error(f"invalid --input {spec!r}; expected L0/L2/L3/L4/L6=CSV")
         extras.append((level, path))
-    audit = prepare(l1_path=args.l1, ring_path=args.ring_a_bell, extra_inputs=extras,
+    audit = prepare(l1_path=args.l1 or cfg["benchmark"]["l1_input"],
+                    ring_path=args.ring_a_bell or cfg["datasets"]["ring-a-bell"]["input_table"], extra_inputs=extras,
                     output_dir=args.output_dir, seed=args.seed, dry_run=args.dry_run or args.validate_only)
     print(json.dumps(audit, indent=2, ensure_ascii=False))
     return 0 if audit["all_levels_reach_1000"] else 2

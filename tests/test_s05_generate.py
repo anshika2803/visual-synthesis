@@ -23,7 +23,7 @@ def test_one_image_is_generated_per_prompt(cfg, tmp_path):
     assert all(Path(path).exists() for path in table["image_path"])
 
 
-def test_stage2_evaluation_seeds_and_attack_metadata_are_preserved(cfg, tmp_path):
+def test_attack_seeds_and_metadata_are_preserved(cfg, tmp_path):
     path = tmp_path / "stage2.csv"
     pd.DataFrame({
         "prompt_id": ["rab_a", "rab_b"], "prompt": ["a cat", "a dog"],

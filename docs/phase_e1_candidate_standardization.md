@@ -22,7 +22,8 @@ PYTHONPATH=src python scripts/standardize_prompt_candidates.py
 
 The command reads existing local files only. It writes the requested candidate
 manifest and a separate report directory at
-`data/processed/unified/unified_prompt_candidates_reports/`. Inputs can be
+`data/processed/unified/unified_prompt_candidates_reports/`. The Ring-A-Bell
+input is `data/processed/standardized/ring-a-bell.csv`. Inputs can be
 overridden with `--l1`, `--coco`, `--nibbler`, `--ring-a-bell`,
 `--review-master`, `--validated`, and `--selected`. Use `--near-threshold 0.9`
 to select the near-duplicate Jaccard threshold. The audit records input

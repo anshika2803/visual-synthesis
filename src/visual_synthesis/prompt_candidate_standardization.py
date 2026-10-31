@@ -37,6 +37,8 @@ TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
+    if path.suffix == ".parquet":
+        return pd.read_parquet(path).fillna("").astype(str)
     return pd.read_csv(path, keep_default_na=False, dtype=str)
 
 
@@ -609,10 +611,10 @@ def _write_readme_report(audit: dict, reports_dir: Path) -> None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--l1", type=Path, default=Path("data/processed/unified/unified_benchmark_l1.csv"))
+    parser.add_argument("--l1", type=Path, default=Path("data/runs/s04_postprocess/real1/unified_deduplicated.parquet"))
     parser.add_argument("--coco", type=Path, default=Path("data/processed/benchmark_prep/phase_c/coco_l0_candidates.csv"))
     parser.add_argument("--nibbler", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/nibbler_submitted_candidates_corrected.csv"))
-    parser.add_argument("--ring-a-bell", type=Path, default=Path("data/processed/stage2/ring_a_bell_standardized.csv"))
+    parser.add_argument("--ring-a-bell", type=Path, default=Path("data/processed/standardized/ring-a-bell.csv"))
     parser.add_argument("--review-master", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/review_master.csv"))
     parser.add_argument("--validated", type=Path, default=Path("data/processed/benchmark_prep/phase_d2/validated/validated_candidates.csv"))
     parser.add_argument("--selected", type=Path, default=Path("data/processed/unified/benchmark_6000_candidates.csv"))

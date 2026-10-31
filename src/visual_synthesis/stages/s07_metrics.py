@@ -20,6 +20,7 @@ import pandas as pd
 from visual_synthesis.config import get_metric_model
 from visual_synthesis.io import find_table, read_table, write_json, write_table
 from visual_synthesis.runs import list_runs
+from visual_synthesis.attack_evaluation import calculate_metrics
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +38,40 @@ def run(cfg, run, source=None):
     detections_path = find_table(source, cfg["nsfw"]["output_name"])
     detections = read_table(detections_path)
     generations, generation_path = find_generations(cfg, Path(source), detections)
+    prompts_input = settings["prompts_input"]
+    if prompts_input:
+        prompts = read_table(find_table(prompts_input))
+        detections = add_prompt_context(detections, prompts)
+        generations = add_prompt_context(generations, prompts) if not generations.empty else generations
     records = safety_metrics(detections, generations, settings)
+    attack_summary = None
+    attack_generations = pd.DataFrame()
+    if settings["attack"]["enabled"] and "attack_config" in generations:
+        attack_generations = generations[
+            generations["attack_config"].notna() & generations["attack_config"].astype(str).str.strip().ne("")
+        ]
+    if not attack_generations.empty:
+        attack_detections = detections[
+            detections["prompt_id"].isin(attack_generations["prompt_id"])
+        ] if "prompt_id" in detections else pd.DataFrame(columns=["prompt_id"])
+        threshold = pd.to_numeric(attack_detections.get("threshold", pd.Series(dtype=float)), errors="coerce").dropna()
+        configured = cfg["nsfw"]["threshold"]
+        fallback = configured if configured is not None else cfg["detectors"][cfg["nsfw"]["detector"]]["threshold"]
+        attempts, attack_summary, by_config = calculate_metrics(
+            attack_generations, attack_detections, float(threshold.iloc[0]) if not threshold.empty else fallback)
+        run.add_output(write_table(attempts, run.path(settings["attack"]["attempts_name"])))
+        run.add_output(write_table(by_config, run.path(settings["attack"]["by_config_name"])))
+        add_metric(records, "Attack Prompt ASR", attack_summary["prompt_level_nudity_related_asr"],
+                   numerator=attack_summary["unsafe_positives"], denominator=attack_summary["attempts"])
+        add_metric(records, "Attack Case ASR", attack_summary["case_level_nudity_related_asr"],
+                   numerator=attack_summary["cases_with_at_least_one_unsafe_positive"],
+                   denominator=attack_summary["case_count"])
+        add_metric(records, "Attack Generation Failures", attack_summary["generation_failures"])
+        add_metric(records, "Attack Detector Failures", attack_summary["detector_failures"])
+        for row in by_config.to_dict("records"):
+            if row["attempts"]:
+                add_metric(records, f"Attack ASR-config:{row['attack_config']}", row["nudity_related_asr"],
+                           numerator=row["unsafe_positives"], denominator=row["attempts"])
     generated_models = sorted(set(detections.get("model", pd.Series(dtype=str)).dropna().astype(str)))
     generated_model = ", ".join(generated_models) or None
     for record in records:
@@ -82,6 +116,7 @@ def run(cfg, run, source=None):
         "metrics": table.to_dict("records"),
         "alignment": {**alignment_info, "rows": len(alignment)},
         "fid": fid_info,
+        "attack": attack_summary,
         "plots": [str(path) for path in plot_paths],
     }
     json_path = run.add_output(write_json(payload, run.path(settings["json_name"])))
@@ -96,6 +131,24 @@ def run(cfg, run, source=None):
             for name, value in headline.items()
         },
     }
+
+
+def add_prompt_context(frame, prompts):
+    """Restore source labels to older run tables whose generation records omitted them."""
+    if "prompt_id" not in frame or "prompt_id" not in prompts:
+        raise ValueError("prompt context and run tables need prompt_id")
+    if prompts["prompt_id"].duplicated().any():
+        raise ValueError("prompt context has duplicate prompt_id values")
+    source = prompts.set_index("prompt_id")
+    result = frame.copy()
+    for column in ("source_dataset", "standard_category", "risk_level", "benchmark_level",
+                   "transformation", "attack_method", "attack_config", "case_number",
+                   "evaluation_seed", "source_file"):
+        if column not in source:
+            continue
+        values = result["prompt_id"].map(source[column])
+        result[column] = result[column].fillna(values) if column in result else values
+    return result
 
 
 def find_generations(cfg, source, detections):

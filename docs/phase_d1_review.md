@@ -47,7 +47,7 @@ review file stops the refresh rather than guessing which decision to keep.
 ```bash
 PYTHONPATH=src python scripts/phase_d1_review.py validate \
   --review-csv data/processed/benchmark_prep/phase_d1/review_batch.csv \
-  --l1 data/processed/unified/unified_benchmark_l1.csv \
+  --l1 data/runs/s04_postprocess/real1/unified_deduplicated.parquet \
   --output-dir data/processed/benchmark_prep/phase_d1/validated
 ```
 

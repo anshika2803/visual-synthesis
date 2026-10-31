@@ -53,7 +53,7 @@ the batch. Accepted decisions enter a validated manifest only after D1 checks:
 PYTHONPATH=src python scripts/phase_d1_review.py validate \
   --review-csv data/processed/benchmark_prep/phase_d2/review_master.csv \
   --output-dir data/processed/benchmark_prep/phase_d2/validated \
-  --l1 data/processed/unified/unified_benchmark_l1.csv
+  --l1 data/runs/s04_postprocess/real1/unified_deduplicated.parquet
 ```
 
 Read-only Markdown progress (include the D1 export to count validated rows):
@@ -78,7 +78,7 @@ Suggested pilot plan (planning only, no prompts generated):
 
 ```bash
 PYTHONPATH=src python scripts/phase_d2_review.py pilot-plan \
-  --l1 data/processed/unified/unified_benchmark_l1.csv \
+  --l1 data/runs/s04_postprocess/real1/unified_deduplicated.parquet \
   --output data/processed/benchmark_prep/phase_d2/transformation_pilot_plan.csv \
   --per-level 25 --seed 42
 ```

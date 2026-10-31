@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from visual_synthesis.io import read_table
 from visual_synthesis.phase_c_candidates import LEVELS, RISK_CATEGORIES
 from visual_synthesis.schema import normalize_prompt, split_categories
 
@@ -211,7 +212,7 @@ def validate_review_batch(review_path: Path, *, output_dir: Path,
     accepted_by_id = {}
     parent_categories = {}
     if l1_path:
-        l1 = pd.read_csv(l1_path, keep_default_na=False, dtype=str)
+        l1 = read_table(l1_path)
         if {"prompt_id", "standard_category"}.issubset(l1.columns):
             for row in l1.to_dict("records"):
                 if row.get("benchmark_level", "L1") == "L1":

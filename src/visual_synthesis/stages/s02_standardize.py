@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from visual_synthesis.config import dataset_dir
-from visual_synthesis.io import clean, write_table
-from visual_synthesis.schema import SEPARATOR, STANDARD_COLUMNS, content_hash, risk_level
+from visual_synthesis.config import dataset_dir, resolve_path
+from visual_synthesis.io import clean, read_table, write_table
+from visual_synthesis.schema import SEPARATOR, STANDARD_COLUMNS, content_hash, risk_level, validate_table
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,9 @@ def standardize_dataset(cfg, run, dataset_id, folder):
     output = run.path(f"{dataset_id}.parquet")
     outcome = {"status": "failed", "rows_in": 0, "rows_out": 0, "output": str(output), "detail": ""}
 
-    files = sorted(p for p in folder.glob(dataset["input_glob"]) if p.is_file()) if folder.is_dir() else []
+    files = ([resolve_path(dataset["input_table"])] if dataset["input_table"] else
+             sorted(p for p in folder.glob(dataset["input_glob"]) if p.is_file()) if folder.is_dir() else [])
+    files = [path for path in files if path.is_file()]
     if not files:
         log.warning("%s: no %s in %s; skipping (run `download` or place the files)",
                     dataset_id, dataset["input_glob"], folder)
@@ -64,8 +66,13 @@ def standardize_dataset(cfg, run, dataset_id, folder):
         return {**outcome, "status": "dry_run"}
 
     try:
-        source_rows = pd.concat([read_source(path, dataset) for path in files], ignore_index=True)
-        table = convert(source_rows, dataset_id, dataset, cfg["taxonomy"], run.id)
+        source_rows = pd.concat([read_table(path) if dataset["input_table"] else read_source(path, dataset)
+                                 for path in files], ignore_index=True)
+        table = (complete_standard_table(source_rows, run.id) if dataset["input_table"] else
+                 convert(source_rows, dataset_id, dataset, cfg["taxonomy"], run.id))
+        validation = validate_table(table, cfg["taxonomy"])
+        if not validation["ok"]:
+            raise ValueError("invalid standardized table: " + "; ".join(validation["errors"]))
     except Exception as exc:  # one bad dataset must not stop the others
         log.error("%s: conversion failed: %s", dataset_id, exc)
         return {**outcome, "detail": str(exc)}
@@ -77,6 +84,26 @@ def standardize_dataset(cfg, run, dataset_id, folder):
     run.add_output(write_table(table, output))
     log.info("%s: %d source rows -> %d standard rows", dataset_id, len(source_rows), len(table))
     return {**outcome, "status": "converted", "rows_in": len(source_rows), "rows_out": len(table)}
+
+
+def complete_standard_table(frame, run_id):
+    """Fill bookkeeping columns in a previously standardized dataset without changing its labels."""
+    required = {"prompt_id", "prompt", "source_dataset", "standard_category", "risk_level",
+                "benchmark_level", "transformation"}
+    missing = required - set(frame)
+    if missing:
+        raise ValueError(f"standardized input missing columns: {sorted(missing)}")
+    table = frame.copy()
+    defaults = {
+        "source_id": table["prompt_id"], "original_category": "", "split": "unassigned",
+        "is_duplicate": False, "duplicate_of_prompt_id": None, "duplicate_group_id": None,
+        "parent_prompt_id": table["prompt_id"], "source_metadata": "",
+        "content_hash": table["prompt"].map(content_hash), "run_id": run_id,
+    }
+    for column, value in defaults.items():
+        if column not in table:
+            table[column] = value
+    return table[STANDARD_COLUMNS + [column for column in table if column not in STANDARD_COLUMNS]]
 
 
 def read_source(path, dataset):

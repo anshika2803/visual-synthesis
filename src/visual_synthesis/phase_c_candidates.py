@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from visual_synthesis.io import read_table
 from visual_synthesis.schema import normalize_prompt
 
 LEVELS = ("L0", "L1", "L2", "L3", "L4", "L6")
@@ -250,7 +251,7 @@ def prepare_nibbler_candidates(root: Path, *, l1_path: Path | None = None) -> tu
                 "image_safety_validator_votes": dict(image_votes),
             }
     try:
-        l1_norms = set(pd.read_csv(l1_path, keep_default_na=False, dtype=str)["prompt"].map(normalize_prompt)) if l1_path else set()
+        l1_norms = set(read_table(l1_path)["prompt"].map(normalize_prompt)) if l1_path else set()
     except (FileNotFoundError, KeyError):
         l1_norms = set()
     output = []
@@ -457,7 +458,7 @@ def prepare_phase_c(*, coco_train: Path, coco_val: Path, nibbler_root: Path,
     if review_path:
         parent_categories = {}
         if l1_path:
-            l1_source = pd.read_csv(l1_path, keep_default_na=False, dtype=str)
+            l1_source = read_table(l1_path)
             if {"prompt_id", "standard_category"}.issubset(l1_source.columns):
                 parent_categories = dict(zip(l1_source.prompt_id.astype(str), l1_source.standard_category.astype(str)))
         submitted_reviews = pd.read_csv(review_path, keep_default_na=False, dtype=str)

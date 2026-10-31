@@ -1,7 +1,8 @@
 # Phase C candidate preparation and validation
 
-Run `python scripts/prepare_phase_c_candidates.py` with the two local COCO
-caption JSON paths, the local Nibbler root, an optional current L1 CSV for
+Run `python scripts/prepare_phase_c_candidates.py` with the two COCO caption
+JSONs under `data/raw/coco-captions/`, the Nibbler root at
+`data/raw/adversarial-nibbler/`, an optional current L1 CSV for
 exact-overlap diagnostics, and an output directory. The default deployment
 location is `data/processed/benchmark_prep/phase_c/`. Outputs are candidate
 manifests, a blank review template, and an audit JSON. They are separate from

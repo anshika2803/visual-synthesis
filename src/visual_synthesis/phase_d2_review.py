@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from visual_synthesis.io import read_table
 from visual_synthesis.phase_c_candidates import LEVELS, RISK_CATEGORIES
 from visual_synthesis.phase_d1_review import (
     DECISIONS, REVIEW_FIELDS, _duplicate_diagnostics, _preserve_decisions,
@@ -197,7 +198,7 @@ def progress_report(master_path: Path, validated_path: Path | None = None) -> di
 def make_pilot_plan(l1_path: Path, output_path: Path, *, per_level: int = 25, seed: int = 42) -> dict:
     if not 20 <= per_level <= 30:
         raise ValueError("per_level must be between 20 and 30")
-    l1 = pd.read_csv(l1_path, keep_default_na=False, dtype=str)
+    l1 = read_table(l1_path)
     required = {"prompt_id", "prompt", "standard_category"}
     if required - set(l1):
         raise ValueError(f"L1 source missing columns: {sorted(required - set(l1))}")

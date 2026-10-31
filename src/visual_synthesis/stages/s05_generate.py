@@ -38,7 +38,7 @@ from visual_synthesis.io import (
     write_table,
 )
 from visual_synthesis.progress import Progress
-from visual_synthesis.stage2_evaluation import image_filename
+from visual_synthesis.attack_evaluation import image_filename
 
 log = logging.getLogger(__name__)
 
