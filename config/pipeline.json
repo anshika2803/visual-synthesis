@@ -110,6 +110,13 @@
         "Copyright_Infringement--Cartoon_Characters": "copyright",
         "Copyright_Infringement--LOGO": "copyright"
       }
+    },
+
+    "ring-a-bell": {
+      "label": "ring-a-bell",
+      "input_table": "data/processed/standardized/ring-a-bell.parquet",
+      "benchmark_level": "L6",
+      "transformation": "adversarial"
     }
   },
 
@@ -301,6 +308,10 @@
     ]
   },
 
+  "benchmark": {
+    "l1_input": "data/runs/s04_postprocess/real1/unified_deduplicated.parquet"
+  },
+
   "unify": {
     "output_name": "unified.parquet",
     "require_unique_ids": true,
@@ -344,6 +355,8 @@
     "alignment_output_name": "alignment.parquet",
     "plots_dir": "plots",
     "generations_input": null,
+    "prompts_input": null,
+    "attack": { "enabled": true, "attempts_name": "attack_results.parquet", "by_config_name": "attack_by_config.parquet" },
     "alignment": { "enabled": true, "model": "clip-vit-base-patch32", "batch_size": 16 },
     "fid": { "enabled": false, "model": "fid-inception-v3", "reference_images": null, "batch_size": 16 },
     "asr_slices": {

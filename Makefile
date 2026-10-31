@@ -18,6 +18,7 @@ LIMIT     ?=
 WORKERS   ?= 1
 RUN_NAME  ?=
 CONFIG    ?=
+SLURM_CONFIG = $(if $(CONFIG),$(CONFIG),config/pipeline.json config/pipeline.hpc.json)
 KEEP      ?= 20
 # Pass-through to the pipeline command, for anything without its own variable:
 #   ARGS="--seed 7 --overwrite --sample random"      raw `visual-synthesis` flags
@@ -201,10 +202,10 @@ serve:  ## Launch the HTTP API
 
 .PHONY: slurm-render slurm-submit docker-build docker-run clean clean-runs
 slurm-render:  ## Write a job script: make slurm-render STAGE=generate MODEL=sd-xl  (ARRAY=1: one task per model)
-	$(VS) slurm render $(STAGE) --overwrite $(if $(ARRAY),--array,--model $(MODEL)) $(if $(LIMIT),--limit $(LIMIT)) $(foreach file,$(CONFIG),-c $(file))
+	$(VS) slurm render $(STAGE) --overwrite $(if $(ARRAY),--array,--model $(MODEL)) $(if $(LIMIT),--limit $(LIMIT)) $(foreach file,$(SLURM_CONFIG),-c $(file))
 
 slurm-submit:  ## Write a job script and submit it
-	$(VS) slurm submit $(STAGE) --overwrite $(if $(ARRAY),--array,--model $(MODEL)) $(if $(LIMIT),--limit $(LIMIT)) $(foreach file,$(CONFIG),-c $(file))
+	$(VS) slurm submit $(STAGE) --overwrite $(if $(ARRAY),--array,--model $(MODEL)) $(if $(LIMIT),--limit $(LIMIT)) $(foreach file,$(SLURM_CONFIG),-c $(file))
 
 docker-build:  ## Build the container image
 	docker build --build-arg TORCH_INDEX_URL=$(TORCH_INDEX_URL) -t $(IMAGE) .

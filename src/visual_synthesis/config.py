@@ -107,6 +107,7 @@ DEFAULTS = {
         "fid-inception-v3": {"label": "Inception-v3 FID", "kind": "fid", "backend": "local", "feature": 2048},
     },
     "stages": {},
+    "benchmark": {"l1_input": "data/runs/s04_postprocess/real1/unified_deduplicated.parquet"},
     "unify": {
         "output_name": "unified.parquet",
         "require_unique_ids": True,
@@ -160,6 +161,9 @@ DEFAULTS = {
         # An optional table/run folder containing generations.  When omitted,
         # the stage finds the generate run from a chained run_id where possible.
         "generations_input": None,
+        "prompts_input": None,
+        "attack": {"enabled": True, "attempts_name": "attack_results.parquet",
+                   "by_config_name": "attack_by_config.parquet"},
         "alignment": {"enabled": True, "model": "clip-vit-base-patch32", "batch_size": 16},
         "fid": {"enabled": False, "model": "fid-inception-v3", "reference_images": None, "batch_size": 16},
         # Queries are evaluated against the detection table.  Add project
@@ -199,6 +203,7 @@ DATASET_DEFAULTS = {
     "enabled": True,
     # --- where the raw files come from (used by the download stage) ---
     "dir": None,  # folder under paths.raw; defaults to the id
+    "input_table": None,  # existing standardized CSV/Parquet, when conversion was already done
     "url": None,  # one URL or a list of URLs
     "sha256": None,  # optional checksum, for a single URL
     "hf_repo": None,  # or: a HuggingFace dataset repo
@@ -522,7 +527,7 @@ def validate(cfg):
 
     for name, dataset in cfg["datasets"].items():
         where = f"datasets.{name}"
-        if not dataset["id_template"] or "{" not in dataset["id_template"]:
+        if not dataset["input_table"] and (not dataset["id_template"] or "{" not in dataset["id_template"]):
             problems.append(f"{where}.id_template needs a placeholder, e.g. 'I2P_{{index:05d}}'")
         if dataset["on_unknown_category"] not in ("raise", "warn_skip", "keep_as_is"):
             problems.append(f"{where}.on_unknown_category must be raise, warn_skip or keep_as_is")
@@ -530,7 +535,7 @@ def validate(cfg):
             problems.append(f"{where}.benchmark_level must be one of {list(BENCHMARK_LEVELS)}")
         if dataset["transformation"] not in TRANSFORMATIONS:
             problems.append(f"{where}.transformation must be one of {list(TRANSFORMATIONS)}")
-        if not dataset["category_map"] and dataset["on_unknown_category"] == "raise":
+        if not dataset["input_table"] and not dataset["category_map"] and dataset["on_unknown_category"] == "raise":
             problems.append(f"{where}.category_map is empty but on_unknown_category=raise; "
                             "every source label would abort the run")
         for label, category in dataset["category_map"].items():

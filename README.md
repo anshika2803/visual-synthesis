@@ -14,7 +14,12 @@ datasets    one schema     one      remove         one image   one verdict  safe
 + weights   per dataset    table    duplicates     per prompt  per image    tables + plots
 ```
 
-Everything is configured in one file: [config/pipeline.json](config/pipeline.json).
+Everything is configured in [config/pipeline.json](config/pipeline.json), with
+cluster overrides in [config/pipeline.hpc.json](config/pipeline.hpc.json).
+Ring-A-Bell's saved SD-Turbo and SDXL evaluations now use these same stages;
+see [the integration and results](docs/ring_a_bell_evaluation.md). Candidate
+selection and human review remain CPU-only preparation steps before a final
+balanced benchmark is ready.
 
 ## Quickstart
 
@@ -46,7 +51,7 @@ Rendered Slurm jobs activate that same environment themselves.
 | # | Stage | Reads | Writes (in its run folder) |
 |---|-------|-------|----------------------------|
 | 1 | `download` | `download` section of the config | `data/raw/<dataset>/`, `models/<model>/` |
-| 2 | `standardize` | `data/raw/<dataset>/` | `<dataset>.parquet`, one per dataset |
+| 2 | `standardize` | `data/raw/<dataset>/` or a configured standardized input table | `<dataset>.parquet`, one per dataset |
 | 3 | `unify` | the standardized tables | `unified.parquet` |
 | 4 | `postprocess` | `unified.parquet` | `unified_deduplicated.parquet`, `duplicates.parquet` |
 | 5 | `generate` | `unified_deduplicated.parquet` | `images/*.png`, `generations.parquet` (+ `.jsonl`) |
@@ -350,6 +355,8 @@ visual-synthesis slurm submit generate --array                      # one array 
 GPU stages use `slurm.gpu` resources, the others `slurm.cpu`. Layer
 `config/pipeline.hpc.json` on top for cluster settings:
 `-c config/pipeline.json -c config/pipeline.hpc.json`.
+The `make slurm-render` and `make slurm-submit` targets pass both files by
+default; set `CONFIG` to override that pair.
 
 ## Docker
 

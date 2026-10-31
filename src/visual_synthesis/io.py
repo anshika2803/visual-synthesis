@@ -48,6 +48,18 @@ def write_table(frame, path):
     return path
 
 
+def write_tabular(frame, path):
+    """Write pipeline tables as Parquet; allow an explicit CSV export for review tools."""
+    path = Path(path)
+    if path.suffix.lower() == ".parquet":
+        return write_table(frame, path)
+    if path.suffix.lower() == ".csv":
+        path.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_csv(path, index=False)
+        return path
+    raise ValueError(f"unsupported table output {path}; use .parquet or .csv")
+
+
 def list_tables(directory):
     """Table files directly inside ``directory``. Names starting with ``_`` are bookkeeping."""
     directory = Path(directory)
