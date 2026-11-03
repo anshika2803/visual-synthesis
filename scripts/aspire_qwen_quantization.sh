@@ -23,4 +23,4 @@ export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-16}}
 export MKL_NUM_THREADS=$OMP_NUM_THREADS TOKENIZERS_PARALLELISM=false
-exec "$vs_python" -u scripts/aspire_qwen_quantization.py run
+exec "$vs_python" -u scripts/aspire_qwen_quantization.py "${VS_QWEN_ACTION:-run}"

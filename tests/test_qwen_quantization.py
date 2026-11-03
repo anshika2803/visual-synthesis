@@ -220,9 +220,10 @@ def test_submission_uses_short_normal_queue_without_inheriting_long_job_dependen
     assert p.stdout.strip() == "124.pbs101"
 
 
-def test_compute_commands_require_pbs_before_loading_any_model(tmp_path):
+@pytest.mark.parametrize("action", ["run", "check", "evaluate"])
+def test_compute_commands_require_pbs_before_loading_any_model(tmp_path, action):
     env = {key: value for key, value in os.environ.items() if key != "PBS_JOBID"}
-    p = subprocess.run([sys.executable, str(ROOT / "scripts/aspire_qwen_quantization.py"), "run"],
+    p = subprocess.run([sys.executable, str(ROOT / "scripts/aspire_qwen_quantization.py"), action],
                        env=env, capture_output=True, text=True)
     assert p.returncode != 0 and "requires PBS" in p.stderr
 

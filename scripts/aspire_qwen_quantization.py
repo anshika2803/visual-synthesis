@@ -193,10 +193,11 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("run", "worker", "check", "collect"))
+    parser.add_argument("action", choices=("run", "worker", "check", "evaluate", "collect"))
     parser.add_argument("--storage", default=os.environ.get("VS_ASPIRE_STORAGE"))
     parser.add_argument("--output", type=Path, default=os.environ.get("VS_QWEN_OUTPUT"))
     parser.add_argument("--source", default=os.environ.get("VS_QWEN_SOURCE"))
+    parser.add_argument("--comparison", type=Path, default=os.environ.get("VS_QWEN_RUN"))
     parser.add_argument("--input", type=Path, default=os.environ.get(
         "VS_QWEN_INPUT", ROOT / "data/processed/unified/unified_prompt_candidates.csv"))
     parser.add_argument("--sample-size", type=int, default=int(os.environ.get("VS_QWEN_SAMPLE_SIZE", "12")))
@@ -211,7 +212,9 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
         if args.action == "collect":
-            path = args.output / "comparison_summary.json"
+            path = args.output / "evaluation_summary.json"
+            if not path.is_file():
+                path = args.output / "comparison_summary.json"
             report = json.loads(path.read_text())
             if args.job_id != report["pbs_job_id"]:
                 raise ValueError("job ID does not match the comparison output")
@@ -220,16 +223,23 @@ def main():
         else:
             if not os.environ.get("PBS_JOBID"):
                 raise ValueError("GPU comparison/check requires PBS; use the submission script")
-            from visual_synthesis.qwen_quantization import generation_worker, gpu_preflight
+            if args.action == "evaluate":
+                from aspire_qwen_evaluation import evaluate
 
-            if args.action == "check":
-                result = gpu_preflight(args.output)
-            elif args.action == "worker":
-                result = generation_worker(json.loads(args.spec.read_text()))
+                if not args.comparison or not 600 <= args.wall_seconds <= 7200:
+                    raise ValueError("evaluation needs a completed comparison path and a 10-minute to 2-hour job")
+                result = evaluate(args)
             else:
-                if not 1 <= args.sample_size <= 24 or not 600 <= args.wall_seconds <= 7200:
-                    raise ValueError("use 1-24 prompts and a 10-minute to 2-hour allocation for this short trial")
-                result = run(args)
+                from visual_synthesis.qwen_quantization import generation_worker, gpu_preflight
+
+                if args.action == "check":
+                    result = gpu_preflight(args.output)
+                elif args.action == "worker":
+                    result = generation_worker(json.loads(args.spec.read_text()))
+                else:
+                    if not 1 <= args.sample_size <= 24 or not 600 <= args.wall_seconds <= 7200:
+                        raise ValueError("use 1-24 prompts and a 10-minute to 2-hour allocation for this short trial")
+                    result = run(args)
         print(json.dumps(result, indent=2, default=str))
         return 0 if result["status"] in ("complete", "success", "ok") else 1
     except Exception as exc:

@@ -1,8 +1,11 @@
 #!/bin/bash
 # Lightweight login-node submission. No active environment/model-cache mutation.
 set -euo pipefail
-if [ "$#" -ne 0 ]; then
-  echo 'Usage: bash scripts/submit_aspire_qwen_quantization.sh (settings through VS_QWEN_* variables)' >&2
+export VS_QWEN_ACTION=run
+if [ "$#" -eq 2 ] && [ "$1" = evaluate ]; then
+  export VS_QWEN_ACTION=evaluate VS_QWEN_RUN=$2
+elif [ "$#" -ne 0 ]; then
+  echo 'Usage: bash scripts/submit_aspire_qwen_quantization.sh [evaluate COMPLETED_RUN_DIRECTORY]' >&2
   exit 2
 fi
 export VS_ASPIRE_REPO
@@ -23,10 +26,18 @@ export VS_ASPIRE_STORAGE=${VS_ASPIRE_STORAGE:-$VS_ASPIRE_REPO/runtime}
 VS_ASPIRE_STORAGE=$("$VS_ASPIRE_PYTHON" -c \
   'from pathlib import Path; import sys; p=Path(sys.argv[1]).resolve(); assert not p.is_relative_to(Path.home().resolve()), "Use scratch, not home"; print(p)' \
   "$VS_ASPIRE_STORAGE")
-export VS_QWEN_SOURCE=${VS_QWEN_SOURCE:-$VS_ASPIRE_STORAGE/models/qwen-image}
-if [ ! -r "$VS_QWEN_SOURCE/model_index.json" ]; then
-  echo 'Cached Qwen weights are required; this comparison never downloads model checkpoints.' >&2
-  exit 2
+if [ "$VS_QWEN_ACTION" = run ]; then
+  export VS_QWEN_SOURCE=${VS_QWEN_SOURCE:-$VS_ASPIRE_STORAGE/models/qwen-image}
+  if [ ! -r "$VS_QWEN_SOURCE/model_index.json" ]; then
+    echo 'Cached Qwen weights are required; this comparison never downloads model checkpoints.' >&2
+    exit 2
+  fi
+else
+  VS_QWEN_RUN=$("$VS_ASPIRE_PYTHON" -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$VS_QWEN_RUN")
+  if [ ! -r "$VS_QWEN_RUN/comparison_summary.json" ]; then
+    echo 'A completed Qwen comparison directory is required for evaluation.' >&2
+    exit 2
+  fi
 fi
 export VS_QWEN_SAMPLE_SIZE=${VS_QWEN_SAMPLE_SIZE:-12}
 export VS_QWEN_ORDER=${VS_QWEN_ORDER:-bf16,nf4}
@@ -36,22 +47,34 @@ case "$VS_QWEN_ORDER" in
   nf4-first|nf4,bf16) export VS_QWEN_ORDER=nf4-first ;;
   *) echo 'VS_QWEN_ORDER must be bf16-first or nf4-first.' >&2; exit 2 ;;
 esac
-export VS_QWEN_WALL_SECONDS=${VS_QWEN_WALL_SECONDS:-6300}
+default_wall_seconds=6300
+run_prefix=qwen-quant
+job_name=vq-qwen-quant
+if [ "$VS_QWEN_ACTION" = evaluate ]; then
+  default_wall_seconds=2700
+  run_prefix=qwen-quant-eval
+  job_name=vq-qwen-eval
+fi
+export VS_QWEN_WALL_SECONDS=${VS_QWEN_WALL_SECONDS:-$default_wall_seconds}
 walltime=$("$VS_ASPIRE_PYTHON" -c \
   'import sys; s=int(sys.argv[1]); n=int(sys.argv[2]); assert 600 <= s <= 7200 and 1 <= n <= 24, "Use 600-7200 seconds and 1-24 prompts"; print(f"{s//3600:02}:{s%3600//60:02}:{s%60:02}")' \
   "$VS_QWEN_WALL_SECONDS" "$VS_QWEN_SAMPLE_SIZE")
 mkdir -p "$VS_ASPIRE_STORAGE/outputs" "$VS_ASPIRE_STORAGE/logs"
 export VS_QWEN_OUTPUT
-VS_QWEN_OUTPUT=$(mktemp -d "$VS_ASPIRE_STORAGE/outputs/qwen-quant-XXXXXX")
+VS_QWEN_OUTPUT=$(mktemp -d "$VS_ASPIRE_STORAGE/outputs/$run_prefix-XXXXXX")
 run_tag=${VS_QWEN_OUTPUT##*/}
 vs_export=VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_PYTHON,VS_ASPIRE_GIT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_QWEN_SOURCE,VS_QWEN_SAMPLE_SIZE,VS_QWEN_ORDER,VS_QWEN_WALL_SECONDS,VS_QWEN_OUTPUT
+vs_export=$vs_export,VS_QWEN_ACTION
+if [ "$VS_QWEN_ACTION" = evaluate ]; then
+  vs_export=${vs_export/VS_QWEN_SOURCE,/},VS_QWEN_RUN
+fi
 if [ -n "${VS_QWEN_INPUT:-}" ]; then
   export VS_QWEN_INPUT
   vs_export=$vs_export,VS_QWEN_INPUT
 fi
 cd "$VS_ASPIRE_REPO"
 # Always normal + <=2h: PBS routes to gdev. No dependency on the long g1 pilots.
-job_id=$(qsub -P "$VS_ASPIRE_PROJECT" -q normal -l "walltime=$walltime" \
+job_id=$(qsub -P "$VS_ASPIRE_PROJECT" -q normal -N "$job_name" -l "walltime=$walltime" \
   -o "$VS_ASPIRE_STORAGE/logs/$run_tag.pbs.log" -v "$vs_export" scripts/aspire_qwen_quantization.sh)
 printf 'Outputs: %s\nLogs: %s/logs/%s.*.log\n' "$VS_QWEN_OUTPUT" "$VS_ASPIRE_STORAGE" "$run_tag" >&2
 printf '%s\n' "$job_id"
