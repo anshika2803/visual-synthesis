@@ -96,6 +96,9 @@ using `scripts/aspire_project_pilot.sh`. It exports explicit shared Git/Python
 paths and the credential **file path**, restores PBS's submission PATH and
 verifies `swara/experiments`. It never switches branches or deletes files.
 Login work is limited to path/branch checks, directory creation and submission.
+Evaluator preparation validates flat Transformers CLIP repositories separately
+from Diffusers generators: CLIP requires config/processor files and root weights,
+not `model_index.json`. Missing files and unknown byte sizes still block downloads.
 
 `all` queues all eight as separate jobs in the existing heavy-first order,
 with Qwen first for early feedback on its tight memory headroom. No argument

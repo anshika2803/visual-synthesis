@@ -25,6 +25,137 @@ from visual_synthesis.project_pilot import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def pilot_driver(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
+    spec = importlib.util.spec_from_file_location("pilot_prepare_test", ROOT / "scripts/aspire_project_pilot.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_prepare_flat_clip_evaluators_reuses_generator_and_caches(cfg, tmp_path, monkeypatch):
+    """CLIP repos have config.json and root weights, not Diffusers model_index.json."""
+    from types import SimpleNamespace
+
+    script = pilot_driver(monkeypatch)
+    models = Path(cfg["paths"]["models"])
+    generator = models / "fake"
+    (generator / "unet").mkdir(parents=True)
+    (generator / "model_index.json").write_text(json.dumps({"unet": ["diffusers", "UNet2DConditionModel"]}))
+    (generator / "unet/model.safetensors").write_bytes(b"cached generator")
+    detector = models / "clip-h14"
+    detector.mkdir()
+    (detector / "h14_nsfw.pth").write_bytes(b"cached detector head")
+
+    clip_repo = "openai/clip-vit-base-patch32"
+    h14_repo = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
+    payloads = {
+        clip_repo: {
+            "config.json": b"{}",
+            "preprocessor_config.json": b"{}",
+            "vocab.json": b"{}",
+            "merges.txt": b"merges",
+            "pytorch_model.bin": b"clip weights",
+        },
+        h14_repo: {
+            "config.json": b"{}",
+            "preprocessor_config.json": b"{}",
+            "model.safetensors": b"h14 weights",
+            "pytorch_model.bin": b"duplicate binary",
+        },
+    }
+    downloads = []
+
+    def model_info(repo, **kwargs):
+        assert kwargs["files_metadata"]
+        return SimpleNamespace(
+            sha="a" * 40,
+            siblings=[SimpleNamespace(rfilename=name, size=len(data)) for name, data in payloads[repo].items()],
+        )
+
+    def download(repo, *, revision, local_dir, allow_patterns):
+        assert revision == "a" * 40
+        assert "model_index.json" not in allow_patterns
+        downloads.append((repo, set(allow_patterns)))
+        local_dir.mkdir(parents=True, exist_ok=True)
+        for name in allow_patterns:
+            (local_dir / name).write_bytes(payloads[repo][name])
+
+    monkeypatch.setitem(
+        sys.modules,
+        "huggingface_hub",
+        SimpleNamespace(HfApi=lambda: SimpleNamespace(model_info=model_info), snapshot_download=download),
+    )
+    monkeypatch.setattr(
+        script,
+        "storage_snapshot",
+        lambda *args, **kw: {
+            "paths": {
+                "workspace": {
+                    "usage": {"allocated_bytes": 0, "stat_errors": []},
+                    "filesystem_free_bytes": 100 * script.GIB,
+                    "filesystem_free_inodes": 10000,
+                }
+            }
+        },
+    )
+    out = tmp_path / "outputs/run"
+    out.mkdir(parents=True)
+    with pytest.raises(ValueError, match="insufficient"):
+        script.prepare_weights("fake", cfg, tmp_path, out, 0.5, True)
+    assert not downloads  # Metadata is not permission to bypass the capacity guard.
+    source = script.prepare_weights("fake", cfg, tmp_path, out, 100, True)
+    assert source == str(models / "openai--clip-vit-base-patch32")
+    assert [repo for repo, _ in downloads] == [clip_repo, h14_repo]
+    assert downloads[1][1] == {"config.json", "preprocessor_config.json", "model.safetensors"}
+    assert (generator / "unet/model.safetensors").read_bytes() == b"cached generator"
+    downloads.clear()
+    script.prepare_weights("fake", cfg, tmp_path, out, 100, False)
+    assert not downloads
+
+
+@pytest.mark.parametrize("problem", ["missing-config", "missing-weights", "unknown-size", "unsafe-path"])
+def test_evaluator_selection_keeps_completeness_size_and_path_guards(monkeypatch, problem):
+    from types import SimpleNamespace
+
+    script = pilot_driver(monkeypatch)
+    files = {"config.json": 2, "preprocessor_config.json": 2, "pytorch_model.bin": 100}
+    if problem == "missing-config":
+        del files["config.json"]
+    elif problem == "missing-weights":
+        del files["pytorch_model.bin"]
+    elif problem == "unknown-size":
+        files["pytorch_model.bin"] = None
+    else:
+        files["../escape.json"] = 20
+    siblings = [SimpleNamespace(rfilename=name, size=size) for name, size in files.items()]
+    with pytest.raises(ValueError):
+        script.select_evaluator_files(
+            siblings, ["*.json", "pytorch_model.bin"], ["config.json", "preprocessor_config.json"]
+        )
+
+
+def test_generator_still_requires_diffusers_index(cfg, monkeypatch):
+    from types import SimpleNamespace
+
+    script = pilot_driver(monkeypatch)
+    cfg["models"]["fake"]["repo_id"] = "example/generator"
+    flat = SimpleNamespace(
+        sha="b" * 40,
+        siblings=[
+            SimpleNamespace(rfilename="config.json", size=10),
+            SimpleNamespace(rfilename="model.safetensors", size=100),
+        ],
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "huggingface_hub",
+        SimpleNamespace(HfApi=lambda: SimpleNamespace(model_info=lambda *args, **kwargs: flat)),
+    )
+    with pytest.raises(ValueError, match="Diffusers weight selection"):
+        script.model_plan("fake", cfg)
+
+
 @pytest.mark.parametrize("spatial", [False, True])
 def test_centered_projection_removes_only_direction_component(spatial):
     module = torch.nn.Identity()

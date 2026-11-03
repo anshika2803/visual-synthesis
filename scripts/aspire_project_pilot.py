@@ -5,6 +5,7 @@ import argparse
 import contextlib
 import csv
 import fcntl
+import fnmatch
 import json
 import os
 import shutil
@@ -28,7 +29,6 @@ from aspire_trial_support import (
     model_plan,
     run_logged,
     save,
-    select_files,
     storage_snapshot,
     tail,
     workspace_path,
@@ -38,6 +38,39 @@ from aspire_trial_support import (
 def stage_log(root, out, phase):
     """One shared log directory; a unique run prefix prevents overwrites."""
     return root / "logs" / f"{out.name}.{phase}.log"
+
+
+def select_evaluator_files(siblings, patterns, required):
+    """Select flat Transformers CLIP repositories, not Diffusers pipelines.
+
+    Keep the generator's model_index.json validation in model_plan unchanged.
+    Both CLIP evaluators use root config/processor files and one root weight
+    file. Prefer safetensors without downloading a duplicate binary checkpoint.
+    """
+    files = {
+        item.rfilename: item.size
+        for item in siblings
+        if any(fnmatch.fnmatch(item.rfilename, pattern) for pattern in patterns)
+    }
+    if any(Path(name).is_absolute() or ".." in Path(name).parts or "\\" in name for name in files):
+        raise ValueError("unsafe evaluator repository file path")
+    files = {name: size for name, size in files.items() if "/" not in name}
+    weight = next((name for name in ("model.safetensors", "pytorch_model.bin") if name in files), None)
+    if weight is None:
+        raise ValueError("evaluator metadata has no supported root weight file")
+    missing = sorted(set(required) - set(files))
+    if missing:
+        raise ValueError(f"evaluator metadata is missing required files: {missing}")
+    files = {
+        name: size
+        for name, size in files.items()
+        if name not in ("model.safetensors", "pytorch_model.bin") or name == weight
+    }
+    if any(not isinstance(size, int) or size < 0 for size in files.values()):
+        raise ValueError("evaluator file sizes are unavailable; cannot authorize a quota-checked download")
+    if any(files[name] == 0 for name in (*required, weight)):
+        raise ValueError("evaluator metadata contains an empty required file")
+    return files
 
 
 def prepare_weights(model_id, cfg, root, out, budget, allow_download):
@@ -104,7 +137,12 @@ def prepare_weights(model_id, cfg, root, out, budget, allow_download):
         ):
             continue
         info = HfApi().model_info(repo, files_metadata=True)
-        files = select_files(info.siblings, patterns, None)
+        try:
+            if not info.sha:
+                raise ValueError("no immutable repository revision")
+            files = select_evaluator_files(info.siblings, patterns, required)
+        except ValueError as exc:
+            raise ValueError(f"evaluator {repo}: {exc}") from exc
         plan = {"repo_id": repo, "revision": info.sha, "files": files, "selected_bytes": sum(files.values())}
         guarded(plan)
         print(f"Preparing evaluator {repo} -> {destination}", flush=True)
@@ -250,6 +288,8 @@ def run_locked(args, root):
     previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt("PBS termination")))
     try:
         summary["input"] = prepare_samples(args.input, out / "inputs", args.baseline, args.discovery, args.validation)
+        summary["current_phase"] = "preflight"
+        save(summary, out / "pilot_summary.json")
         before = storage_snapshot(root, scan=True)
         save(before, out / "storage-before.json")
         guard = download_guard(before, 0, 1000, args.budget_gib)
@@ -272,6 +312,8 @@ def run_locked(args, root):
         if run_logged(preflight, stage_log(root, out, "preflight"), 300):
             raise RuntimeError("environment preflight failed; inspect the preflight log and SETUP.md")
         cfg = configs()
+        summary["current_phase"] = "prepare-resources"
+        save(summary, out / "pilot_summary.json")
         event(f"Preparing missing cached resources; see {stage_log(root, out, 'preparation')}")
         with stage_log(root, out, "preparation").open("w") as stream:
             with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):

@@ -279,3 +279,15 @@ Missing/failed models remain explicit. Final reports and frozen reviewed inputs
 must be retained outside scratch's purge lifecycle. Old `data/runs` manifests
 and root-level PBS files belong to previous pipeline runs; preserve them as
 needed. New pilot data is confined to the ignored runtime folder.
+
+## Evaluator-preparation error in an earlier pilot version
+
+If all models stop with `model metadata does not contain a complete configured
+Diffusers weight selection`, update this branch before retrying. The earlier
+pilot incorrectly applied the generator's `model_index.json` requirement to
+flat Transformers CLIP repositories. The corrected evaluator selector validates
+their config/processor/tokenizer files and root weights separately, preferring
+safetensors when available. Generator validation and download-capacity checks
+remain strict. This failure happens before timed generation; existing model
+caches and completed two-prompt fit results remain usable. Retry one model first
+to confirm evaluator preparation completes, then submit the remaining pilots.
