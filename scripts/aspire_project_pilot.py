@@ -35,6 +35,11 @@ from aspire_trial_support import (
 )
 
 
+def stage_log(root, out, phase):
+    """One shared log directory; a unique run prefix prevents overwrites."""
+    return root / "logs" / f"{out.name}.{phase}.log"
+
+
 def prepare_weights(model_id, cfg, root, out, budget, allow_download):
     from huggingface_hub import HfApi, snapshot_download
 
@@ -75,8 +80,8 @@ def prepare_weights(model_id, cfg, root, out, budget, allow_download):
             str(out / "inputs/baseline.csv"),
             "--generation-only",
         ]
-        if run_logged(command, out / "logs/generator-prefetch.log", 5400, offline=False):
-            raise RuntimeError("generator prefetch failed; inspect logs/generator-prefetch.log") from None
+        if run_logged(command, stage_log(root, out, "generator-prefetch"), 5400, offline=False):
+            raise RuntimeError("generator prefetch failed; inspect the generator-prefetch log") from None
 
     model_root = Path(cfg["paths"]["models"])
     for repo, destination, patterns in (
@@ -152,7 +157,7 @@ def write_tables(summary, out):
         return
     scores = {}
     for kind in EVALUATORS:
-        path = out / "outputs" / kind / "scores.jsonl"
+        path = out / kind / "scores.jsonl"
         if path.is_file():
             scores[kind] = {(r["condition"], r["prompt_id"]): r for r in read_jsonl(path)}
     metrics = []
@@ -204,24 +209,26 @@ def run(args):
 def run_locked(args, root):
     from visual_synthesis.project_pilot import CONDITIONS, EVALUATORS, prepare_samples, project_costs, read_jsonl
 
-    runs = root / "runs"
+    runs = root / "outputs"
     runs.mkdir(exist_ok=True)
     if os.environ.get("VS_PILOT_OUTPUT"):
         out = Path(os.environ["VS_PILOT_OUTPUT"]).resolve()
-        if out == runs.resolve() or not out.is_relative_to(runs.resolve()):
-            raise ValueError("VS_PILOT_OUTPUT must be a run directory inside runtime/runs")
+        # Also accept paths already submitted by the earlier launcher.
+        allowed = (runs.resolve(), (root / "runs").resolve())
+        if not any(out != parent and out.is_relative_to(parent) for parent in allowed):
+            raise ValueError("VS_PILOT_OUTPUT must be a run directory inside runtime/outputs")
         out.mkdir(exist_ok=True)
         if (out / "pilot_summary.json").exists():
             raise ValueError("run already exists; submit a new run instead of overwriting it")
     else:
         out = Path(tempfile.mkdtemp(prefix=f"{args.model}-", dir=runs))
-    logs, outputs = out / "logs", out / "outputs"
+    logs, outputs = root / "logs", out
     logs.mkdir(exist_ok=True)
     outputs.mkdir(exist_ok=True)
 
     def event(message):
         print(message, flush=True)
-        with (logs / "pilot.log").open("a") as stream:
+        with stage_log(root, out, "pilot").open("a") as stream:
             stream.write(f"{datetime.now(UTC).isoformat()} {message}\n")
 
     event(f"Pilot artifacts: {out}")
@@ -232,6 +239,8 @@ def run_locked(args, root):
         "time_utc": datetime.now(UTC).isoformat(),
         "phases": {},
         "output": str(out),
+        "log_directory": str(logs),
+        "log_prefix": out.name,
         "git_commit": git_command("rev-parse", "HEAD")["stdout"].strip(),
         "scope": "Resource pilot on candidates; no validated safety claims.",
         "projection": {"status": "incomplete"},
@@ -260,11 +269,11 @@ def run_locked(args, root):
             "--input",
             str(args.input),
         ]
-        if run_logged(preflight, logs / "preflight.log", 300):
-            raise RuntimeError("environment preflight failed; inspect logs/preflight.log and SETUP.md")
+        if run_logged(preflight, stage_log(root, out, "preflight"), 300):
+            raise RuntimeError("environment preflight failed; inspect the preflight log and SETUP.md")
         cfg = configs()
-        event("Preparing missing cached resources; see logs/preparation.log")
-        with (logs / "preparation.log").open("w") as stream:
+        event(f"Preparing missing cached resources; see {stage_log(root, out, 'preparation')}")
+        with stage_log(root, out, "preparation").open("w") as stream:
             with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
                 clip_source = prepare_weights(args.model, cfg, root, out, args.budget_gib, args.allow_download)
         base = {"config": cfg, "model": args.model, "clip_source": clip_source}
@@ -279,16 +288,16 @@ def run_locked(args, root):
             save(spec, target / "spec.json")
             summary["current_phase"] = name
             save(summary, out / "pilot_summary.json")
-            event(f"Starting {name}; log: {logs / (name + '.log')}")
+            event(f"Starting {name}; log: {stage_log(root, out, name)}")
             code = run_logged(
                 [sys.executable, "-u", str(Path(__file__).resolve()), "worker", "--spec", str(target / "spec.json")],
-                logs / f"{name}.log",
+                stage_log(root, out, name),
                 args.timeout,
             )
             path = target / "report.json"
             report = json.loads(path.read_text()) if path.is_file() else {"phase": name, "status": "failed"}
             if code or report["status"] != "success":
-                error = report.get("error") or f"worker exit={code}; {tail(logs / (name + '.log'), limit=3000)}"
+                error = report.get("error") or f"worker exit={code}; {tail(stage_log(root, out, name), limit=3000)}"
                 report.update(status="failed", error=error)
                 report.setdefault("failure_kind", "timeout" if code == 124 else classify(report["error"]))
             summary["phases"][name] = report
@@ -347,7 +356,9 @@ def run_locked(args, root):
 def aggregate(root, output):
     newest = {}
     candidates = []
-    for path in (root / "runs").glob("*/pilot_summary.json"):
+    paths = list((root / "outputs").glob("*/pilot_summary.json"))
+    paths += list((root / "runs").glob("*/pilot_summary.json"))  # Retain earlier pilot reports.
+    for path in paths:
         report = json.loads(path.read_text())
         created = report.get("time_utc", datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat())
         candidates.append((created, report))

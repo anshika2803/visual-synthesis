@@ -7,6 +7,9 @@ single `YOUR_PROJECT_ID` placeholder with a project listed for your account.
 The pilot supports **all eight selected models**. `all` queues one GPU job per
 model in sequence, starting with Qwen because it has the least memory headroom.
 Each job measures generation, evaluation, pooled capture and interventions.
+The eight-model two-prompt fit stage is already recorded in the
+[consolidated results](docs/aspire_trial_results.md). The larger pilot is a new
+measurement stage for evaluator and intervention costs; it reuses cached weights.
 
 ## 1. Login, project and storage
 
@@ -58,16 +61,16 @@ visual-synthesis/
     setup/                                     Installation caches
     models/                                    Reusable generator/evaluator weights
     hf-home/                                   HF cache and private token file
-    runs/<model>-<unique-id>/                   Everything for one submitted run
-      logs/                                    All logs together
-        pbs.log                                Scheduler stdout/stderr
-        pilot.log                              Live driver progress
-        preflight.log, preparation.log
-        baseline.log, capture.log, learn.log
-        alpha-zero.log, safety-ablation.log, ...
-        nudenet.log, clip-h14.log, alignment.log, clip-iqa.log
+    logs/                                      Every model/run log in one folder
+      <run>.pbs.log                            Scheduler stdout/stderr
+      <run>.pilot.log                          Live driver progress
+      <run>.preflight.log, <run>.preparation.log
+      <run>.baseline.log, <run>.capture.log, <run>.learn.log
+      <run>.alpha-zero.log, <run>.safety-ablation.log, ...
+      <run>.nudenet.log, <run>.clip-h14.log, ...
+    outputs/<model>-<unique-id>/                Every run's outputs and reports
       inputs/                                  Frozen sample tables and hashes
-      outputs/<phase>/                         Images, scores, pooled features
+      <phase>/                                 Images, scores, pooled features
       pilot_summary.json                       Status, resources and forecasts
       phase_summary.csv                        Per-phase timings/memory
       image_metrics.csv                        Per-image evaluator scores
@@ -230,21 +233,26 @@ pilots on candidate prompts, not validated safety-effectiveness studies.
 
 ## 6. Logs, outputs and final accounting
 
-The submission command immediately prints the run folder and all logs are in
-its `logs/` directory. From that folder:
+Every new log is in `<checkout>/runtime/logs/`. Every output/report is under
+`<checkout>/runtime/outputs/`. Filenames use a unique model/run prefix so runs
+cannot overwrite each other. The submission command prints that prefix and
+the output directory immediately. From the checkout, for example:
 
 ```bash
-cat pilot_summary.json
-tail -n 40 -F logs/pilot.log
-tail -n 40 -F logs/baseline.log
+ls runtime/logs
+ls runtime/outputs
+RUN_TAG=qwen-image-ABC123  # Replace with the exact printed run prefix
+cat "runtime/outputs/$RUN_TAG/pilot_summary.json"
+tail -n 40 -F "runtime/logs/$RUN_TAG.pilot.log"
+tail -n 40 -F "runtime/logs/$RUN_TAG.baseline.log"
 # Later:
-tail -n 40 -F logs/capture.log
-tail -n 40 -F logs/safety-ablation.log
+tail -n 40 -F "runtime/logs/$RUN_TAG.capture.log"
+tail -n 40 -F "runtime/logs/$RUN_TAG.safety-ablation.log"
 ```
 
 `-F` waits for logs not created yet; Ctrl+C only stops watching. Scheduler
-`logs/pbs.log` may be delivered only at job end; `logs/pilot.log` and phase
-logs are live. Outputs are beside those logs in `outputs/`. New jobs create
+`<run>.pbs.log` may be delivered only at job end; `<run>.pilot.log` and phase
+logs are live. All models' logs share the same directory. New jobs create
 new run folders, so an old 401 log remains unchanged after fixing authentication.
 Cached weights produce no prefetch log.
 

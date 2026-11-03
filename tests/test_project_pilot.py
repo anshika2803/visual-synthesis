@@ -300,7 +300,7 @@ def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path)
     assert process.stdout.strip() == "12345.pbs101"
     args = capture.read_text()
     assert "depend=afterany:12344.pbs101" in args and "HF_TOKEN_PATH" in args
-    assert str(tmp_path / "workspace/runs") in args and "/logs/pbs.log" in args
+    assert str(tmp_path / "workspace/logs") in args and ".pbs.log" in args
     assert "qwen-image" in process.stderr
 
 
@@ -310,7 +310,7 @@ def test_aggregate_reports_extended_core_and_mixed_scopes(tmp_path, monkeypatch)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
     for model in script.ORDER:
-        path = tmp_path / "runs" / model / "pilot_summary.json"
+        path = tmp_path / "outputs" / model / "pilot_summary.json"
         path.parent.mkdir(parents=True)
         path.write_text(
             json.dumps(
@@ -372,6 +372,10 @@ printf '%s.pbs101\\n' "$((12345+n))"
     assert len(lines) == 8 and lines[0].startswith("qwen-image ") and lines[-1].startswith("sd-1.5 ")
     args = capture.read_text()
     assert args.count("depend=afterany:") == 7
-    assert len(list((tmp_path / "runtime/runs").iterdir())) == 8
-    assert args.count("/logs/pbs.log") == 8
+    assert len(list((tmp_path / "runtime/outputs").iterdir())) == 8
+    assert args.count(".pbs.log") == 8
+    arguments = args.splitlines()
+    destinations = [Path(arguments[i + 1]) for i, arg in enumerate(arguments) if arg == "-o"]
+    assert len({p.name for p in destinations}) == 8
+    assert {p.parent for p in destinations} == {tmp_path / "runtime/logs"}
     assert "not-a-real-token" not in args

@@ -133,10 +133,11 @@ safety conclusions. Near-boundary E6 prompts are not provided by this pilot.
 
 ## Results and whole-project forecasting
 
-All new artifacts are under `<checkout>/runtime/runs/<model>-<unique-id>/`.
-See the folder map in `SETUP.md`. All logs, including PBS output, are together
-in that run's `logs/` directory (`baseline.log`, `capture.log`, etc.). Each
-phase's `spec.json`, `report.json`, images and scores live in `outputs/<phase>/`.
+All new logs, for every model and run, share `<checkout>/runtime/logs/`.
+Names such as `<model>-<unique-id>.baseline.log` avoid overwriting older runs.
+All output files and reports are under
+`<checkout>/runtime/outputs/<model>-<unique-id>/`. See the folder map in `SETUP.md`.
+Each phase's `spec.json`, `report.json`, images and scores live in `<phase>/`.
 Image-producing phases also have PNGs and `images.jsonl`. Capture adds pooled activations;
 learning adds `direction.npz`. `pilot_summary.json` is updated between phases.
 

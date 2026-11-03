@@ -63,7 +63,7 @@ slurm/jobs/
 *.sbatch
 squeue*.out
 nohup.out
-# Legacy PBS files in the checkout root; new pilots use runtime/runs/<run>/logs.
+# Legacy PBS files in the checkout root; new pilots use runtime/logs/.
 /*.o[0-9]*
 /*.e[0-9]*
 

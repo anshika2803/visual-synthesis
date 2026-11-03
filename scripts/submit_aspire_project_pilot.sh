@@ -49,11 +49,11 @@ if [ "$VS_PILOT_MODEL" = all ]; then
   done
   exit 0
 fi
-mkdir -p "$VS_ASPIRE_STORAGE/runs"
+mkdir -p "$VS_ASPIRE_STORAGE/outputs" "$VS_ASPIRE_STORAGE/logs"
 export VS_PILOT_OUTPUT
-VS_PILOT_OUTPUT=$(mktemp -d "$VS_ASPIRE_STORAGE/runs/$VS_PILOT_MODEL-XXXXXX")
-mkdir -p "$VS_PILOT_OUTPUT/logs"
-pbs_log="$VS_PILOT_OUTPUT/logs/pbs.log"
+VS_PILOT_OUTPUT=$(mktemp -d "$VS_ASPIRE_STORAGE/outputs/$VS_PILOT_MODEL-XXXXXX")
+run_tag=${VS_PILOT_OUTPUT##*/}
+pbs_log="$VS_ASPIRE_STORAGE/logs/$run_tag.pbs.log"
 vs_export=VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_PYTHON,VS_ASPIRE_GIT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_PILOT_MODEL,VS_PILOT_OUTPUT,VS_PILOT_ALLOW_DOWNLOAD,VS_PILOT_BASELINE,VS_PILOT_DISCOVERY,VS_PILOT_VALIDATION,HF_TOKEN_PATH
 if [ -n "${VS_ASPIRE_INPUT:-}" ]; then
   export VS_ASPIRE_INPUT
@@ -71,5 +71,6 @@ cd "$VS_ASPIRE_REPO"
 job_id=$(qsub -P "$VS_ASPIRE_PROJECT" -N "vp-${VS_PILOT_MODEL:0:12}" -o "$pbs_log" \
   "$@" -v "$vs_export" scripts/aspire_project_pilot.sh)
 printf 'PBS output (usually delivered at job end): %s\n' "$pbs_log" >&2
-printf 'Run folder: %s\nLive logs: %s/logs/\n' "$VS_PILOT_OUTPUT" "$VS_PILOT_OUTPUT" >&2
+printf 'Outputs: %s\nAll logs: %s/logs/\nRun prefix: %s\n' \
+  "$VS_PILOT_OUTPUT" "$VS_ASPIRE_STORAGE" "$run_tag" >&2
 printf '%s\n' "$job_id"
