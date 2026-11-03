@@ -32,6 +32,10 @@ def configs():
     return load_config(CONFIGS)
 
 
+def git_command(*args):
+    return command([os.environ.get("VS_ASPIRE_GIT") or "git", "-C", str(ROOT), *args])
+
+
 def model_plan(model_id, cfg):
     """Fetch file metadata only, pinning the exact configured selection to a commit."""
     from huggingface_hub import HfApi
@@ -287,7 +291,10 @@ def trial(model_id, out, root, args):
 def run(args):
     if not os.environ.get("PBS_JOBID"):
         raise ValueError("run must execute inside a PBS compute job; submit aspire_resource_trial.sh with qsub")
-    if command(["git", "-C", str(ROOT), "branch", "--show-current"])["stdout"].strip() != "swara/experiments":
+    branch = git_command("branch", "--show-current")
+    if branch["returncode"] != 0:
+        raise ValueError(f"Git branch check failed: {branch['stderr']}")
+    if branch["stdout"].strip() != "swara/experiments":
         raise ValueError("expected swara/experiments; no checkout or merge will be performed")
     root = workspace_path(args.storage)
     if args.budget_gib is None or not math.isfinite(args.budget_gib) or args.budget_gib <= 0:
@@ -309,8 +316,8 @@ def run_locked(args, root):
     out = Path(tempfile.mkdtemp(prefix=f"pbs-{os.environ['PBS_JOBID']}-", dir=make_trials(root)))
     print(f"Trial artifacts: {out}", flush=True)
     summary = {"status": "running", "pbs_job_id": os.environ["PBS_JOBID"], "order": args.models,
-               "git_commit": command(["git", "-C", str(ROOT), "rev-parse", "HEAD"])["stdout"].strip(),
-               "git_status": command(["git", "-C", str(ROOT), "status", "--short"])["stdout"],
+               "git_commit": git_command("rev-parse", "HEAD")["stdout"].strip(),
+               "git_status": git_command("status", "--short")["stdout"],
                "scope": "pretrained generation fit only; no evaluators, activation hooks or ablations",
                "models": [], "not_run": list(args.models)}
     save(summary, out / "run_summary.json")

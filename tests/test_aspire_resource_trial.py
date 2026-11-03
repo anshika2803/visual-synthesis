@@ -110,6 +110,61 @@ def test_run_and_shell_wrapper_refuse_login_node(monkeypatch, tmp_path):
     assert "qsub" in result.stderr
 
 
+@pytest.mark.parametrize("git_location", ["submission_path", "python_env", "explicit"])
+def test_batch_shell_finds_git_before_enforcing_branch(tmp_path, git_location):
+    tools, env_bin, empty = (tmp_path / name for name in ("tools", "env/bin", "empty"))
+    for path in (tools, env_bin, empty):
+        path.mkdir(parents=True)
+    python = env_bin / "python"
+    python.write_text('#!/bin/bash\nprintf "DRIVER_STARTED\\n"\n')
+    python.chmod(0o755)
+    git = (env_bin if git_location == "python_env" else tools) / "git"
+    git.write_text('#!/bin/bash\nprintf "swara/experiments\\n"\n')
+    git.chmod(0o755)
+    env = {"PATH": str(empty), "PBS_JOBID": "42.pbs", "PBS_O_WORKDIR": str(tmp_path),
+           "PBS_O_PATH": str(tools if git_location == "submission_path" else empty),
+           "VS_ASPIRE_PYTHON": str(python), "VS_ASPIRE_STORAGE": "/scratch/test", "VS_ASPIRE_BUDGET_GIB": "100"}
+    if git_location == "explicit":
+        env["VS_ASPIRE_GIT"] = str(git)
+    result = subprocess.run(["/bin/bash", str(ROOT / "scripts/aspire_resource_trial.sh")],
+                            capture_output=True, text=True, env=env)
+    assert result.returncode == 0, result.stderr
+    assert "DRIVER_STARTED" in result.stdout
+
+
+@pytest.mark.parametrize("git_failure", ["missing", "command_error", "wrong_branch"])
+def test_batch_startup_reports_git_failures_without_starting_driver(tmp_path, git_failure):
+    python = tmp_path / "python"
+    python.write_text('#!/bin/bash\nprintf "DRIVER_STARTED\\n"\n')
+    python.chmod(0o755)
+    if git_failure != "missing":
+        git = tmp_path / "git"
+        git.write_text('#!/bin/bash\nexit 128\n' if git_failure == "command_error" else
+                       '#!/bin/bash\nprintf "main\\n"\n')
+        git.chmod(0o755)
+    env = {"PATH": str(tmp_path), "PBS_JOBID": "42.pbs", "PBS_O_WORKDIR": str(tmp_path),
+           "VS_ASPIRE_PYTHON": str(python), "VS_ASPIRE_STORAGE": "/scratch/test", "VS_ASPIRE_BUDGET_GIB": "100"}
+    result = subprocess.run(["/bin/bash", str(ROOT / "scripts/aspire_resource_trial.sh")],
+                            capture_output=True, text=True, env=env)
+    assert result.returncode == 2
+    assert "DRIVER_STARTED" not in result.stdout
+    if git_failure == "missing":
+        assert "Git executable unavailable" in result.stderr
+        assert "Expected swara" not in result.stderr
+    elif git_failure == "command_error":
+        assert "Git branch check failed" in result.stderr
+    else:
+        assert "found 'main'" in result.stderr
+
+
+def test_driver_uses_explicit_git_executable(monkeypatch, tmp_path):
+    seen = []
+    monkeypatch.setenv("VS_ASPIRE_GIT", str(tmp_path / "git"))
+    monkeypatch.setattr(support, "command", lambda args: seen.append(args) or {"stdout": ""})
+    support.git_command("rev-parse", "HEAD")
+    assert seen == [[str(tmp_path / "git"), "-C", str(ROOT), "rev-parse", "HEAD"]]
+
+
 @pytest.mark.parametrize("failure_kind,expected", [("gpu_out_of_memory", 2), ("storage_exhausted", 1)])
 def test_serial_heavy_first_run_continues_after_model_failure_but_stops_on_full_storage(
     tmp_path, monkeypatch, failure_kind, expected

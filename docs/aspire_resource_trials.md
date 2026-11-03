@@ -124,6 +124,19 @@ If Conda is unavailable in the batch shell, export
 `VS_ASPIRE_PYTHON=/absolute/path/to/visual-safety/bin/python` and include that
 variable in `qsub -v`. This bypasses activation and uses that interpreter.
 
+The launcher restores `PBS_O_PATH` (the submission shell's saved search path)
+and adds the selected Python environment's `bin` directory before checking Git.
+For Git installed through a module, export `VS_ASPIRE_GIT=$(command -v git)` on
+the login node and include it in `qsub -v`. The same executable is used for
+branch verification and Git provenance in the Python driver.
+
+If the job reports **Git executable unavailable**, this is a batch environment
+problem, not evidence of a different branch. No model downloads or trial output
+directories are created at that stage. If the captured executable is absent on
+compute nodes too, install Git into `visual-safety` in an allocated CPU session,
+then export that environment's Git path. A real branch mismatch remains an
+error; the launcher never switches branches.
+
 ## First ASPIRE 2A trial: Qwen with CPU offload
 
 The 2A login hostname is **`aspire2antu.nscc.sg`**. The hostname
@@ -147,6 +160,8 @@ myquota
 
 export VS_ASPIRE_REPO="$PWD"
 export VS_ASPIRE_PROJECT="YOUR_NSCC_PROJECT_ID"
+export VS_ASPIRE_PYTHON="$(command -v python)"
+export VS_ASPIRE_GIT="$(command -v git)"
 export VS_ASPIRE_STORAGE="$HOME/scratch/visual-synthesis-trials"
 export VS_ASPIRE_BUDGET_GIB=100
 export VS_ASPIRE_ALLOW_DOWNLOAD=1
@@ -154,10 +169,11 @@ export VS_ASPIRE_MODELS=qwen-image
 export VS_ASPIRE_CPU_OFFLOAD=1
 
 qsub -P "$VS_ASPIRE_PROJECT" \
-  -v VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_ASPIRE_ALLOW_DOWNLOAD,VS_ASPIRE_MODELS,VS_ASPIRE_CPU_OFFLOAD \
+  -v VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_PYTHON,VS_ASPIRE_GIT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_ASPIRE_ALLOW_DOWNLOAD,VS_ASPIRE_MODELS,VS_ASPIRE_CPU_OFFLOAD \
   scripts/aspire_resource_trial.sh
 ```
 
+Activate `visual-safety` before capturing the interpreter path above.
 Use the actual project ID shown by `myprojects`. A personal project is usable
 only if it is listed for your account with sufficient GPU allocation.
 The 100 GiB workspace budget requires that much available in the assigned
@@ -171,7 +187,7 @@ checking space. Leave `VS_ASPIRE_MODELS` out of the exported variable list:
 unset VS_ASPIRE_MODELS
 export VS_ASPIRE_BUDGET_GIB=300
 qsub -P "$VS_ASPIRE_PROJECT" \
-  -v VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_ASPIRE_ALLOW_DOWNLOAD,VS_ASPIRE_CPU_OFFLOAD \
+  -v VS_ASPIRE_REPO,VS_ASPIRE_PROJECT,VS_ASPIRE_PYTHON,VS_ASPIRE_GIT,VS_ASPIRE_STORAGE,VS_ASPIRE_BUDGET_GIB,VS_ASPIRE_ALLOW_DOWNLOAD,VS_ASPIRE_CPU_OFFLOAD \
   scripts/aspire_resource_trial.sh
 ```
 
