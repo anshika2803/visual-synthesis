@@ -1,5 +1,14 @@
 # ASPIRE trials from swara/experiments
 
+**Results received 2026-11-03:** all eight models passed the two-prompt generation
+fit trial on ASPIRE 2A with CPU offload enabled. See the
+[consolidated results](aspire_trial_results.md) for measured timings, memory,
+checkpoint sizes, 6,000-prompt projections and the limits of the E1–E6 estimate.
+
+For the next stage use the [larger evaluated/intervention pilot](aspire_project_pilot.md).
+New teammates should begin with [SETUP.md](../SETUP.md). The original fit
+launcher below remains generation-only; it does not invoke the new pilot.
+
 The PBS launcher `scripts/aspire_resource_trial.sh` runs the existing benchmark
 engine on **one GPU, one model at a time**. It supports ASPIRE 2A (A100 40 GB)
 and ASPIRE 2A+ (H100 80 GB). Start on ASPIRE 2A using the offload trial below.

@@ -40,6 +40,8 @@ logs/
 results/runs/
 results/serving/
 results/benchmarks/
+# Cluster runtime: model caches, all pilot logs, generated images and reports.
+/runtime/
 results/tables/*
 !results/tables/.gitkeep
 
@@ -61,6 +63,9 @@ slurm/jobs/
 *.sbatch
 squeue*.out
 nohup.out
+# Legacy PBS files in the checkout root; new pilots use runtime/runs/<run>/logs.
+/*.o[0-9]*
+/*.e[0-9]*
 
 # --- editors and OS ----------------------------------------------------------
 .vscode/

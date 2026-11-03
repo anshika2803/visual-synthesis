@@ -1,0 +1,885 @@
+{
+  "date_singapore": "2026-11-03",
+  "evidence_type": "User-supplied cluster stdout and final PBS accounting; consolidated locally.",
+  "branch": "swara/experiments",
+  "benchmark_git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+  "source_reports": [
+    {
+      "source": "first-run",
+      "pbs_job_id": "26100299.pbs101",
+      "stdout_sha256": "2241cebdc23b35e0fae5eb6524bd6cc94d5079706dbe5b6e9fd79d61688e7f30",
+      "report_status": "incomplete",
+      "not_run": []
+    },
+    {
+      "source": "retry-run",
+      "pbs_job_id": "26100736.pbs101",
+      "stdout_sha256": "4638dc4c29b835db0e549a9e0b3387253ce62570cad059aa6fd8c3268d7876d0",
+      "report_status": "success",
+      "not_run": []
+    }
+  ],
+  "final_retry_accounting": {
+    "provenance": "Selected fields transcribed from user-provided final collect output; not a new cluster query.",
+    "pbs_job_id": "26100736.pbs101",
+    "job_state": "F",
+    "Exit_status": 0,
+    "resources_used": {
+      "walltime": "00:08:05",
+      "cput": "00:07:26",
+      "mem": "38323336kb",
+      "ncpus": 16,
+      "ngpus": 0
+    },
+    "Resource_List": {
+      "ngpus": 1,
+      "ncpus": 16,
+      "mem": "110gb",
+      "walltime": "06:00:00"
+    },
+    "gpu_max_memory_reported": {
+      "value": 24348,
+      "unit_as_reported": "MB"
+    },
+    "note": "GPU use is confirmed by allocation and GPU telemetry. The usage counter ngpus=0 does not negate this."
+  },
+  "environment": {
+    "accelerate": "1.15.0",
+    "diffusers": "0.41.0",
+    "nudenet": "3.4.2",
+    "pandas": "3.1.0",
+    "torch": "2.6.0+cu118",
+    "transformers": "5.20.1"
+  },
+  "python": "3.11.18",
+  "cuda_runtime": "11.8",
+  "allocation": {
+    "system": "ASPIRE 2A",
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "gpus": 1,
+    "cpus": 16,
+    "ram_as_requested": "110gb",
+    "walltime_as_requested": "06:00:00"
+  },
+  "scope": "Pretrained generation fit, one warmup and two measured sequential prompts per successful model, batch one, CPU offload active. No evaluator, capture, intervention or fine-tuning measurements.",
+  "models": [
+    {
+      "model": "sd-xl",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 30,
+      "dtype": "float16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 19.50154129206203,
+      "warmup_seconds": 16.884097845992073,
+      "mean_seconds_per_prompt_inference_only": 5.314091771026142,
+      "mean_seconds_per_prompt_with_io": 5.724350767559372,
+      "generation_hours_6000": 9.550694023385876,
+      "gpu_allocated_peak_gib": 5.209191799163818,
+      "gpu_reserved_peak_gib": 7.30859375,
+      "worker_rss_peak_gib": 9.176990509033203,
+      "checkpoint_logical_gib": 6.620344460941851,
+      "png_projection_gib_6000": 9.200370870530605,
+      "label": "SDXL",
+      "pipeline_class": "StableDiffusionXLPipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "*.json",
+          "*.txt",
+          "*.fp16.safetensors"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "float16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "stable_diffusion_xl",
+        "generation_kwargs": {},
+        "guidance_scale": 7.5,
+        "height": 1024,
+        "id": "sd-xl",
+        "label": "Stable Diffusion XL Base 1.0",
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 30,
+        "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": "fp16",
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 5593327104,
+        "cuda_reserved_peak_bytes": 7847542784,
+        "rss_peak_sampled_bytes": 9853718528,
+        "rss_process_lifetime_peak_bytes": 9853718528
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        5.400245662080124,
+        5.22793787997216
+      ],
+      "prompt_seconds_with_io": [
+        5.710461429087445,
+        5.738240106031299
+      ],
+      "mean_image_bytes": 1646470.5,
+      "fixed_seconds_per_model_run": 36.39387883292511,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "sd-3.5-large",
+      "status": "success",
+      "pbs_job_id": "26100736.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 40,
+      "dtype": "bfloat16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 31.386927967891097,
+      "warmup_seconds": 35.94014403130859,
+      "mean_seconds_per_prompt_inference_only": 24.215830851346254,
+      "mean_seconds_per_prompt_with_io": 24.730466446839273,
+      "generation_hours_6000": 41.236148132089035,
+      "gpu_allocated_peak_gib": 16.050621509552002,
+      "gpu_reserved_peak_gib": 16.376953125,
+      "worker_rss_peak_gib": 30.687572479248047,
+      "checkpoint_logical_gib": 25.730859704315662,
+      "png_projection_gib_6000": 8.510883897542953,
+      "label": "SD 3.5 Large",
+      "pipeline_class": "StableDiffusion3Pipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/config.json",
+          "text_encoder/model.safetensors",
+          "text_encoder_2/config.json",
+          "text_encoder_2/model.safetensors",
+          "text_encoder_3/config.json",
+          "text_encoder_3/model.safetensors.index.json",
+          "text_encoder_3/model-*.safetensors",
+          "tokenizer/**",
+          "tokenizer_2/**",
+          "tokenizer_3/**",
+          "transformer/**",
+          "vae/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "bfloat16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "stable_diffusion_3",
+        "generation_kwargs": {},
+        "guidance_scale": 4.5,
+        "height": 1024,
+        "id": "sd-3.5-large",
+        "label": "Stable Diffusion 3.5 Large",
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 40,
+        "repo_id": "stabilityai/stable-diffusion-3.5-large",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 17234223616,
+        "cuda_reserved_peak_bytes": 17584619520,
+        "rss_peak_sampled_bytes": 32950530048,
+        "rss_process_lifetime_peak_bytes": 32950530048
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        24.39549323869869,
+        24.036168463993818
+      ],
+      "prompt_seconds_with_io": [
+        24.94594174064696,
+        24.514991153031588
+      ],
+      "mean_image_bytes": 1523082.0,
+      "fixed_seconds_per_model_run": 67.33459448488429,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "flux-dev",
+      "status": "success",
+      "pbs_job_id": "26100736.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 50,
+      "dtype": "bfloat16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 29.549109268002212,
+      "warmup_seconds": 92.94663984701037,
+      "mean_seconds_per_prompt_inference_only": 32.72933892975561,
+      "mean_seconds_per_prompt_with_io": 33.09917612769641,
+      "generation_hours_6000": 55.1993223260171,
+      "gpu_allocated_peak_gib": 22.634646892547607,
+      "gpu_reserved_peak_gib": 23.279296875,
+      "worker_rss_peak_gib": 37.66209030151367,
+      "checkpoint_logical_gib": 31.428776586428285,
+      "png_projection_gib_6000": 6.32212869822979,
+      "label": "FLUX.1-dev",
+      "pipeline_class": "FluxPipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/**",
+          "text_encoder_2/**",
+          "tokenizer/**",
+          "tokenizer_2/**",
+          "transformer/**",
+          "vae/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "bfloat16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "flux",
+        "generation_kwargs": {},
+        "guidance_scale": 3.5,
+        "height": 1024,
+        "id": "flux-dev",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 50,
+        "repo_id": "black-forest-labs/FLUX.1-dev",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 24303767040,
+        "cuda_reserved_peak_bytes": 24995954688,
+        "rss_peak_sampled_bytes": 40439361536,
+        "rss_process_lifetime_peak_bytes": 40439361536
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        32.8304334031418,
+        32.62824445636943
+      ],
+      "prompt_seconds_with_io": [
+        33.279423031024635,
+        32.918929224368185
+      ],
+      "mean_image_bytes": 1131389.0,
+      "fixed_seconds_per_model_run": 122.50360748311505,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "qwen-image",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 50,
+      "dtype": "bfloat16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 17.78439449495636,
+      "warmup_seconds": 105.41627220087685,
+      "mean_seconds_per_prompt_inference_only": 60.970739517128095,
+      "mean_seconds_per_prompt_with_io": 61.523522660601884,
+      "generation_hours_6000": 102.57342897338036,
+      "gpu_allocated_peak_gib": 38.42733335494995,
+      "gpu_reserved_peak_gib": 38.6015625,
+      "worker_rss_peak_gib": 61.552650451660156,
+      "checkpoint_logical_gib": 53.7415827838704,
+      "png_projection_gib_6000": 6.396571174263954,
+      "label": "Qwen-Image",
+      "pipeline_class": "QwenImagePipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/**",
+          "tokenizer/**",
+          "transformer/**",
+          "vae/**",
+          "processor/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "bfloat16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "qwen_image",
+        "generation_kwargs": {
+          "true_cfg_scale": 4.0
+        },
+        "guidance_scale": null,
+        "height": 1024,
+        "id": "qwen-image",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": " ",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 50,
+        "repo_id": "Qwen/Qwen-Image",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 41261035008,
+        "cuda_reserved_peak_bytes": 41448112128,
+        "rss_peak_sampled_bytes": 66091655168,
+        "rss_process_lifetime_peak_bytes": 66091655168
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        61.082877287175506,
+        60.858601747080684
+      ],
+      "prompt_seconds_with_io": [
+        61.723544750129804,
+        61.323500571073964
+      ],
+      "mean_image_bytes": 1144711.0,
+      "fixed_seconds_per_model_run": 123.2083405579906,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "z-image-turbo",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 9,
+      "dtype": "bfloat16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 50.70903151901439,
+      "warmup_seconds": 19.43560299719684,
+      "mean_seconds_per_prompt_inference_only": 10.04724873334635,
+      "mean_seconds_per_prompt_with_io": 10.57414745038841,
+      "generation_hours_6000": 17.643065847276592,
+      "gpu_allocated_peak_gib": 12.049949645996094,
+      "gpu_reserved_peak_gib": 12.875,
+      "worker_rss_peak_gib": 22.698875427246094,
+      "checkpoint_logical_gib": 30.592377468012273,
+      "png_projection_gib_6000": 7.076357491314411,
+      "label": "Z-Image-Turbo",
+      "pipeline_class": "ZImagePipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/**",
+          "tokenizer/**",
+          "transformer/**",
+          "vae/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "bfloat16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "z_image",
+        "generation_kwargs": {},
+        "guidance_scale": 0.0,
+        "height": 1024,
+        "id": "z-image-turbo",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 9,
+        "repo_id": "Tongyi-MAI/Z-Image-Turbo",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 12938534912,
+        "cuda_reserved_peak_bytes": 13824425984,
+        "rss_peak_sampled_bytes": 24372731904,
+        "rss_process_lifetime_peak_bytes": 24372731904
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        10.416692460887134,
+        9.677805005805567
+      ],
+      "prompt_seconds_with_io": [
+        10.905694288900122,
+        10.242600611876696
+      ],
+      "mean_image_bytes": 1266363.5,
+      "fixed_seconds_per_model_run": 70.15234786528163,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "glm-image",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 50,
+      "dtype": "bfloat16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 21.797982988879085,
+      "warmup_seconds": 113.31260328786448,
+      "mean_seconds_per_prompt_inference_only": 87.978961988003,
+      "mean_seconds_per_prompt_with_io": 88.32009084103629,
+      "generation_hours_6000": 147.23768408328127,
+      "gpu_allocated_peak_gib": 18.942031383514404,
+      "gpu_reserved_peak_gib": 18.96875,
+      "worker_rss_peak_gib": 35.537086486816406,
+      "checkpoint_logical_gib": 33.33134360797703,
+      "png_projection_gib_6000": 11.3564757630229,
+      "label": "GLM-Image",
+      "pipeline_class": "GlmImagePipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/**",
+          "tokenizer/**",
+          "transformer/**",
+          "vae/**",
+          "processor/**",
+          "vision_language_encoder/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "bfloat16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "glm_image",
+        "generation_kwargs": {},
+        "guidance_scale": 1.5,
+        "height": 1024,
+        "id": "glm-image",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 50,
+        "repo_id": "zai-org/GLM-Image",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 20338851328,
+        "cuda_reserved_peak_bytes": 20367540224,
+        "rss_peak_sampled_bytes": 38157656064,
+        "rss_process_lifetime_peak_bytes": 38157656064
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        88.79808026296087,
+        87.15984371304512
+      ],
+      "prompt_seconds_with_io": [
+        88.98364993999712,
+        87.65653174207546
+      ],
+      "mean_image_bytes": 2032320.5,
+      "fixed_seconds_per_model_run": 135.11765359481797,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "pixart-sigma",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 1024,
+      "height": 1024,
+      "steps": 20,
+      "dtype": "float16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 40.858753707958385,
+      "warmup_seconds": 14.09474810399115,
+      "mean_seconds_per_prompt_inference_only": 9.36408038798254,
+      "mean_seconds_per_prompt_with_io": 9.767936917953193,
+      "generation_hours_6000": 16.29516157236972,
+      "gpu_allocated_peak_gib": 10.81080436706543,
+      "gpu_reserved_peak_gib": 10.828125,
+      "worker_rss_peak_gib": 25.124217987060547,
+      "checkpoint_logical_gib": 20.329123047180474,
+      "png_projection_gib_6000": 7.901388220489025,
+      "label": "PixArt-Σ",
+      "pipeline_class": "PixArtSigmaPipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "model_index.json",
+          "scheduler/**",
+          "text_encoder/**",
+          "tokenizer/**",
+          "transformer/**",
+          "vae/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "float16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "pixart_sigma",
+        "generation_kwargs": {},
+        "guidance_scale": 4.5,
+        "height": 1024,
+        "id": "pixart-sigma",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 20,
+        "repo_id": "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": null,
+        "width": 1024
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 11608012800,
+        "cuda_reserved_peak_bytes": 11626610688,
+        "rss_peak_sampled_bytes": 26340012032,
+        "rss_process_lifetime_peak_bytes": 26976923648
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        9.06037465389818,
+        9.6677861220669
+      ],
+      "prompt_seconds_with_io": [
+        9.46932173287496,
+        10.066552103031427
+      ],
+      "mean_image_bytes": 1414008.5,
+      "fixed_seconds_per_model_run": 54.96015281183645,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    },
+    {
+      "model": "sd-1.5",
+      "status": "success",
+      "pbs_job_id": "26100299.pbs101",
+      "git_commit": "08d3f385d94ae521a4b4d294ff7e9c28c6fb221d",
+      "sample_prompts": 2,
+      "width": 512,
+      "height": 512,
+      "steps": 30,
+      "dtype": "float16",
+      "cpu_offload_hooks_active": true,
+      "load_seconds": 16.44722977792844,
+      "warmup_seconds": 6.456415272084996,
+      "mean_seconds_per_prompt_inference_only": 1.5090135510545224,
+      "mean_seconds_per_prompt_with_io": 1.611943481490016,
+      "generation_hours_6000": 2.6929366929675194,
+      "gpu_allocated_peak_gib": 1.7499198913574219,
+      "gpu_reserved_peak_gib": 1.923828125,
+      "worker_rss_peak_gib": 3.335254669189453,
+      "checkpoint_logical_gib": 2.553898903541267,
+      "png_projection_gib_6000": 2.902884967625141,
+      "label": "SD 1.5",
+      "pipeline_class": "StableDiffusionPipeline",
+      "model_settings": {
+        "allow_patterns": [
+          "*.json",
+          "*.txt",
+          "*.fp16.safetensors",
+          "tokenizer/**",
+          "scheduler/**"
+        ],
+        "backend": "diffusers",
+        "device": "cuda",
+        "device_index": null,
+        "dtype": "float16",
+        "enable_attention_slicing": false,
+        "enable_cpu_offload": true,
+        "enable_xformers": false,
+        "family": "stable_diffusion",
+        "generation_kwargs": {},
+        "guidance_scale": 7.5,
+        "height": 512,
+        "id": "sd-1.5",
+        "label": null,
+        "local_dir": null,
+        "negative_prompt": "",
+        "num_images_per_prompt": 1,
+        "num_inference_steps": 30,
+        "repo_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+        "revision": null,
+        "safety_checker": false,
+        "scheduler": null,
+        "variant": "fp16",
+        "width": 512
+      },
+      "resources_bytes": {
+        "cuda_allocated_peak_bytes": 1878962176,
+        "cuda_reserved_peak_bytes": 2065694720,
+        "rss_peak_sampled_bytes": 3581202432,
+        "rss_process_lifetime_peak_bytes": 3581202432
+      },
+      "prompt_levels": [
+        "L1",
+        "L0"
+      ],
+      "prompt_seconds_inference_only": [
+        1.5522671521175653,
+        1.4657599499914795
+      ],
+      "prompt_seconds_with_io": [
+        1.6244492039550096,
+        1.5994377590250224
+      ],
+      "mean_image_bytes": 519491.5,
+      "fixed_seconds_per_model_run": 22.911205742973834,
+      "projection_status": "provisional",
+      "missing_sample_levels": [
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ],
+      "model_revision_note": "Worker settings report revision=null; retain original cluster download plans for immutable Hub revisions."
+    }
+  ],
+  "totals": {
+    "successful_models": 8,
+    "measured_images": 16,
+    "warmup_generations": 8,
+    "target_images_6000_each": 48000,
+    "generation_hours_6000_each": 392.4284416507674,
+    "sequential_gpu_days": 16.351185068781977,
+    "ideal_four_gpu_hours": 98.10711041269185,
+    "checkpoint_logical_gib": 204.32830656226724,
+    "png_projection_gib_48000": 59.66706108301878,
+    "checkpoint_plus_png_gib": 263.995367645286,
+    "generation_su_at_64_per_gpu_hour": 25115.420265649114
+  },
+  "conditional_e1_e6_scenarios": [
+    {
+      "scope": "Mixed full/reduced E1-E6 tiers",
+      "images_by_model": {
+        "sd-xl": 5300,
+        "sd-3.5-large": 2650,
+        "flux-dev": 2650,
+        "qwen-image": 2650,
+        "z-image-turbo": 5300,
+        "glm-image": 2650,
+        "pixart-sigma": 5300,
+        "sd-1.5": 5300
+      },
+      "total_images": 31800,
+      "image_generation_equivalent_hours": 193.61931535389806,
+      "png_projection_gib": 38.3137276628986,
+      "checkpoint_plus_png_gib": 242.64203422516584,
+      "caveat": "Conditional image-count arithmetic at measured baseline speeds; excludes hook/mode effects, evaluations, probe learning, repeated setup, retries and queues. Not a measured full-project runtime or bound."
+    },
+    {
+      "scope": "Full E1-E6 core on all eight",
+      "images_by_model": {
+        "sd-xl": 5300,
+        "sd-3.5-large": 5300,
+        "flux-dev": 5300,
+        "qwen-image": 5300,
+        "z-image-turbo": 5300,
+        "glm-image": 5300,
+        "pixart-sigma": 5300,
+        "sd-1.5": 5300
+      },
+      "total_images": 42400,
+      "image_generation_equivalent_hours": 346.4899066321927,
+      "png_projection_gib": 52.70590395666659,
+      "checkpoint_plus_png_gib": 257.03421051893383,
+      "caveat": "Conditional image-count arithmetic at measured baseline speeds; excludes hook/mode effects, evaluations, probe learning, repeated setup, retries and queues. Not a measured full-project runtime or bound."
+    },
+    {
+      "scope": "6000 baseline plus full E4-E6 subsets",
+      "images_by_model": {
+        "sd-xl": 10100,
+        "sd-3.5-large": 10100,
+        "flux-dev": 10100,
+        "qwen-image": 10100,
+        "z-image-turbo": 10100,
+        "glm-image": 10100,
+        "pixart-sigma": 10100,
+        "sd-1.5": 10100
+      },
+      "total_images": 80800,
+      "image_generation_equivalent_hours": 660.2920862236125,
+      "png_projection_gib": 100.43955282308161,
+      "checkpoint_plus_png_gib": 304.76785938534886,
+      "caveat": "Conditional image-count arithmetic at measured baseline speeds; excludes hook/mode effects, evaluations, probe learning, repeated setup, retries and queues. Not a measured full-project runtime or bound."
+    }
+  ],
+  "illustrative_two_model_pairs": [
+    {
+      "models": [
+        "glm-image",
+        "sd-1.5"
+      ],
+      "generation_hours_6000_each": 149.9306207762488,
+      "checkpoint_logical_gib": 35.8852425115183,
+      "png_projection_gib_6000_each": 14.25936073064804
+    },
+    {
+      "models": [
+        "qwen-image",
+        "sd-xl"
+      ],
+      "generation_hours_6000_each": 112.12412299676623,
+      "checkpoint_logical_gib": 60.36192724481225,
+      "png_projection_gib_6000_each": 15.59694204479456
+    },
+    {
+      "models": [
+        "flux-dev",
+        "pixart-sigma"
+      ],
+      "generation_hours_6000_each": 71.49448389838682,
+      "checkpoint_logical_gib": 51.75789963360876,
+      "png_projection_gib_6000_each": 14.223516918718815
+    },
+    {
+      "models": [
+        "sd-3.5-large",
+        "z-image-turbo"
+      ],
+      "generation_hours_6000_each": 58.87921397936563,
+      "checkpoint_logical_gib": 56.323237172327936,
+      "png_projection_gib_6000_each": 15.587241388857365
+    }
+  ],
+  "unmeasured": [
+    "Evaluator load/inference",
+    "E4 activation capture",
+    "E4 direction/probe learning",
+    "E5 ablation and steering",
+    "E6 strength sweeps",
+    "Full-run failure rate and quality",
+    "Queue delays",
+    "Model performance on H100/H200 or Mac",
+    "Fine-tuning"
+  ],
+  "limitations": [
+    "Two prompts per model; only L0 and L1.",
+    "Source was unreviewed candidates with no L2 rows.",
+    "Different native resolutions, steps and dtypes; latency table is not a controlled quality/speed ranking.",
+    "GPU values are PyTorch allocator peaks, not total GPU memory or hardware minimums.",
+    "Checkpoint sizes are logical local-file bytes, not aggregate filesystem quota use.",
+    "Final PBS exit status for first job was not supplied; its six per-model reports are complete.",
+    "Per-model 6000 projections include setup once; repeated/chunked production runs add setup again."
+  ]
+}

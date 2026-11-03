@@ -1,4 +1,16 @@
-# ASPIRE feasibility for the eight-model E1–E6 study
+# Historical ASPIRE feasibility assessment for the eight-model E1–E6 study
+
+**Superseded by the [consolidated ASPIRE trial results](aspire_trial_results.md)
+on 2026-11-03.** All eight models have now passed the two-prompt generation fit
+trial on ASPIRE 2A's A100 40 GB with CPU offload active, 16 CPUs and 110 GB RAM.
+The measured baseline projection is 392.4 GPU-hours for 6,000 prompts per model.
+Use the results document for the current hardware conclusion, resource table,
+storage estimate and conditional E1–E6 calculations. Capture/intervention fit
+and evaluator costs still need measurement.
+
+The assessment below records the earlier, pre-trial branch audit and hardware
+expectations. Its H100-first recommendation and guessed runtime figures are
+historical, not the current generation-fit recommendation or runtime forecast.
 
 Checked on 2026-11-03 (Asia/Singapore). Remote branch references were refreshed
 with `git fetch origin`. No branches were switched or merged, no jobs or model

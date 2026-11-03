@@ -57,6 +57,15 @@ export OMP_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-14}}
 export MKL_NUM_THREADS=$OMP_NUM_THREADS
 export TOKENIZERS_PARALLELISM=false
 export HF_HUB_DOWNLOAD_TIMEOUT=180
-# The Python driver fixes all weight/cache paths before importing the HF libraries.
-exec "$vs_aspire_python" -u scripts/aspire_trial_support.py run \
-  --storage "$VS_ASPIRE_STORAGE" --budget-gib "$VS_ASPIRE_BUDGET_GIB"
+# Both drivers fix weight/cache paths before importing the HF libraries.
+case "${VS_ASPIRE_WORKFLOW:-fit}" in
+  fit)
+    exec "$vs_aspire_python" -u scripts/aspire_trial_support.py run \
+      --storage "$VS_ASPIRE_STORAGE" --budget-gib "$VS_ASPIRE_BUDGET_GIB"
+    ;;
+  project-pilot)
+    exec "$vs_aspire_python" -u scripts/aspire_project_pilot.py run \
+      --storage "$VS_ASPIRE_STORAGE" --budget-gib "$VS_ASPIRE_BUDGET_GIB"
+    ;;
+  *) echo "Unknown VS_ASPIRE_WORKFLOW" >&2; exit 2 ;;
+esac
