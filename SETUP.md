@@ -252,6 +252,12 @@ learned/random ablation and steering, and four evaluators. See the
 [protocol and limitations](docs/aspire_project_pilot.md). These are resource
 pilots on candidate prompts, not validated safety-effectiveness studies.
 
+For a separate short Qwen BF16/NF4 comparison while these jobs continue, use
+`bash scripts/submit_aspire_qwen_quantization.sh`. It requests one GPU for
+1h45m through `normal`, targeting development-queue routing, reuses Qwen's
+cached weights and isolates dependency/cache writes from active pilots.
+See the [paired comparison protocol](docs/aspire_qwen_quantization.md).
+
 ## 6. Logs, outputs and final accounting
 
 Every new log is in `<checkout>/runtime/logs/`. Every output/report is under
