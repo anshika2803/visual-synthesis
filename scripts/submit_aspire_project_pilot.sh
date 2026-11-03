@@ -2,13 +2,18 @@
 # Login-node submission only: no model imports, recursive scans or downloads.
 set -euo pipefail
 if [ "$#" -gt 1 ]; then
-  echo "Usage: bash scripts/submit_aspire_project_pilot.sh [all|model-id]" >&2
+  echo "Usage: bash scripts/submit_aspire_project_pilot.sh [all|remaining|model-id]" >&2
   exit 2
 fi
 export VS_PILOT_MODEL=${1:-all}
 case "$VS_PILOT_MODEL" in
-  all|sd-xl|sd-3.5-large|flux-dev|qwen-image|z-image-turbo|glm-image|pixart-sigma|sd-1.5) ;;
+  all|remaining|sd-xl|sd-3.5-large|flux-dev|qwen-image|z-image-turbo|glm-image|pixart-sigma|sd-1.5) ;;
   *) echo "Unknown model: $VS_PILOT_MODEL" >&2; exit 2 ;;
+esac
+export VS_ASPIRE_QUEUE=${VS_ASPIRE_QUEUE:-normal}
+case "$VS_ASPIRE_QUEUE" in
+  normal|ai) ;;
+  *) echo 'VS_ASPIRE_QUEUE must be normal or ai; execution queues such as g1 are routed by PBS.' >&2; exit 2 ;;
 esac
 export VS_ASPIRE_REPO
 VS_ASPIRE_REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
@@ -77,13 +82,17 @@ PY
   export HF_TOKEN_PATH
   echo 'Using the standard credential file in runtime/hf-home/token; the original file is preserved.' >&2
 fi
-if [[ "$VS_PILOT_MODEL" == all || "$VS_PILOT_MODEL" == flux-dev || "$VS_PILOT_MODEL" == sd-3.5-large ]] && [ ! -r "$HF_TOKEN_PATH" ]; then
+if [[ "$VS_PILOT_MODEL" == all || "$VS_PILOT_MODEL" == remaining || "$VS_PILOT_MODEL" == flux-dev || "$VS_PILOT_MODEL" == sd-3.5-large ]] && [ ! -r "$HF_TOKEN_PATH" ]; then
   echo 'Gated models require a readable HF_TOKEN_PATH file. Run hf auth login first; see SETUP.md.' >&2
   exit 2
 fi
-if [ "$VS_PILOT_MODEL" = all ]; then
+if [[ "$VS_PILOT_MODEL" == all || "$VS_PILOT_MODEL" == remaining ]]; then
+  models=(glm-image flux-dev sd-3.5-large z-image-turbo pixart-sigma sd-xl sd-1.5)
+  if [ "$VS_PILOT_MODEL" = all ]; then
+    models=(qwen-image "${models[@]}")
+  fi
   previous_job=${VS_PILOT_AFTER:-}
-  for model in qwen-image glm-image flux-dev sd-3.5-large z-image-turbo pixart-sigma sd-xl sd-1.5; do
+  for model in "${models[@]}"; do
     previous_job=$(VS_PILOT_AFTER="$previous_job" bash "${BASH_SOURCE[0]}" "$model")
     printf '%s %s\n' "$model" "$previous_job"
   done
@@ -108,7 +117,7 @@ if [ -n "${VS_PILOT_AFTER:-}" ]; then
   set -- -W "depend=afterany:$VS_PILOT_AFTER"
 fi
 cd "$VS_ASPIRE_REPO"
-job_id=$(qsub -P "$VS_ASPIRE_PROJECT" -N "vp-${VS_PILOT_MODEL:0:12}" -o "$pbs_log" \
+job_id=$(qsub -P "$VS_ASPIRE_PROJECT" -q "$VS_ASPIRE_QUEUE" -N "vp-${VS_PILOT_MODEL:0:12}" -o "$pbs_log" \
   "$@" -v "$vs_export" scripts/aspire_project_pilot.sh)
 printf 'PBS output (usually delivered at job end): %s\n' "$pbs_log" >&2
 printf 'Outputs: %s\nAll logs: %s/logs/\nRun prefix: %s\n' \

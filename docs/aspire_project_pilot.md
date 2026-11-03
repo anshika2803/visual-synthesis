@@ -115,6 +115,19 @@ first_job=$(bash scripts/submit_aspire_project_pilot.sh sd-xl)
 VS_PILOT_AFTER="$first_job" bash scripts/submit_aspire_project_pilot.sh sd-1.5
 ```
 
+If Qwen is already running, submit just the remaining seven after it:
+
+```bash
+qstat -u "$USER"
+VS_PILOT_AFTER=YOUR_CURRENT_QWEN_JOB_ID \
+  bash scripts/submit_aspire_project_pilot.sh remaining
+```
+
+Replace the placeholder with the full active Qwen job ID. `remaining` is the
+fixed heavy-first list excluding Qwen, not a scan for unfinished models.
+There are seven separate six-hour requests, not one six-hour allocation shared
+by seven models. One model finishing early releases its allocation immediately.
+
 `afterany` allows the next model to be profiled even if Qwen cannot fit capture.
 One workspace lock is shared with the old fit runner, so do not run simultaneous
 jobs against that same workspace. Teammates use their own workspace/account.
@@ -138,6 +151,35 @@ latent generator. Default inputs remain candidates, lack L2 and have no
 reported human validation. This pilot measures resources; direction/probe
 accuracy, detector flags and image scores cannot establish the final study's
 safety conclusions. Near-boundary E6 prompts are not provided by this pilot.
+
+## GPU choices and concurrency
+
+The [NSCC ASPIRE 2A specifications](https://nsccsg.github.io/systems/aspire2a/system-specifications/)
+list A100 40GB GPUs for both the `normal` Cray pool and the `ai` Apollo pool.
+AI nodes add local NVMe storage; they do not provide a larger GPU.
+[ASPIRE 2A+](https://nsccsg.github.io/systems/aspire2a%2B/system-specifications/)
+has H100 80GB GPUs and requires allocation on that separate system.
+Changing a queue on the ASPIRE 2A login does not select an H100.
+
+The [NSCC quickstart guide](https://help.nscc.sg/wp-content/uploads/2024/06/ASPIRE2A-General-Quickstart-Guide-1.pdf)
+says AI-queue access must be requested for the project. The helper defaults to
+`normal`; an approved AI project can set `VS_ASPIRE_QUEUE=ai` before submission.
+It accepts only these routing queues, not execution queues such as `g1`.
+
+The [April 2025 job-management guide](https://help.nscc.sg/wp-content/uploads/ASPIRE2A-ADVANCED-JOB-MANAGEMENT-TRAINING_GUIDE.pdf)
+lists one running job per user in `g1` and two in `aiq1`; limits can change.
+Inspect current queue settings on the login node:
+
+```bash
+qstat -Qf g1
+qstat -Qf ai@pbs102
+```
+
+Queue visibility alone does not prove project access. The current shared-workspace
+runner serializes pilots even if more GPUs are available. Multi-GPU requests
+would need a dispatcher assigning each worker its own allocated GPU and revising
+cache/budget locking; extra requested GPUs currently remain unused. Teammates
+can run concurrently in their own allocated accounts and workspaces.
 
 ## Results and whole-project forecasting
 

@@ -225,6 +225,21 @@ first_job=$(bash scripts/submit_aspire_project_pilot.sh sd-xl)
 VS_PILOT_AFTER="$first_job" bash scripts/submit_aspire_project_pilot.sh sd-1.5
 ```
 
+If Qwen's larger pilot is already running, queue the other seven with one command:
+
+```bash
+qstat -u "$USER"  # Find the current Qwen job ID, including its .pbs101 suffix
+VS_PILOT_AFTER=YOUR_CURRENT_QWEN_JOB_ID \
+  bash scripts/submit_aspire_project_pilot.sh remaining
+```
+
+`remaining` always means GLM, FLUX, SD 3.5 Large, Z-Image-Turbo, PixArt,
+SDXL and SD 1.5; it does not inspect previous results or submit Qwen. Each job
+requests its own six-hour allocation. The default routing queue is `normal`.
+`VS_ASPIRE_QUEUE=ai` selects the other ASPIRE 2A A100 pool only for projects
+with approved AI-queue access. See [GPU choices and limits](docs/aspire_project_pilot.md#gpu-choices-and-concurrency)
+before changing queues; H100 GPUs are on the separate ASPIRE 2A+ system.
+
 Do not run simultaneous jobs against the same runtime directory; it has a
 shared cache/budget lock. Each teammate has their own account and runtime.
 Weights/evaluators are downloaded individually on compute nodes, before timing;

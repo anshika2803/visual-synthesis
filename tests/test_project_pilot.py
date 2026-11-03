@@ -401,7 +401,8 @@ def test_aggregate_keeps_latest_failure_visible(tmp_path, monkeypatch):
     assert "generation_plus_evaluation_hours" not in result
 
 
-def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path):
+@pytest.mark.parametrize("queue", ["normal", "ai", "g1"])
+def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path, queue):
     git = tmp_path / "git"
     git.write_text('#!/bin/bash\nprintf "swara/experiments\\n"\n')
     git.chmod(0o755)
@@ -417,6 +418,7 @@ def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path)
         "VS_ASPIRE_STORAGE": str(tmp_path / "workspace"),
         "VS_ASPIRE_PYTHON": sys.executable,
         "VS_ASPIRE_GIT": str(git),
+        "VS_ASPIRE_QUEUE": queue,
         "CAPTURE_ARGS": str(capture),
         "HF_TOKEN_PATH": str(tmp_path / "token"),
         "VS_PILOT_AFTER": "12344.pbs101",
@@ -427,9 +429,14 @@ def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path)
         capture_output=True,
         text=True,
     )
+    if queue == "g1":
+        assert process.returncode != 0 and "normal or ai" in process.stderr
+        assert not capture.exists()
+        return
     assert process.returncode == 0, process.stderr
     assert process.stdout.strip() == "12345.pbs101"
     args = capture.read_text()
+    assert f"-q\n{queue}\n" in args
     assert "depend=afterany:12344.pbs101" in args and "HF_TOKEN_PATH" in args
     assert str(tmp_path / "workspace/logs") in args and ".pbs.log" in args
     assert "qwen-image" in process.stderr
@@ -520,7 +527,8 @@ def test_aggregate_reports_extended_core_and_mixed_scopes(tmp_path, monkeypatch)
     assert result["scenarios"]["mixed_core"]["evaluation_hours"] > 0
 
 
-def test_all_submission_chains_eight_models_and_uses_one_runtime_tree(tmp_path):
+@pytest.mark.parametrize("selection", ["all", "remaining"])
+def test_group_submission_chains_models_and_uses_one_runtime_tree(tmp_path, selection):
     git = tmp_path / "git"
     git.write_text('#!/bin/bash\nprintf "swara/experiments\\n"\n')
     git.chmod(0o755)
@@ -549,23 +557,34 @@ printf '%s.pbs101\\n' "$((12345+n))"
         "CAPTURE_ARGS": str(capture),
         "JOB_COUNTER": str(tmp_path / "counter"),
         "HF_TOKEN_PATH": str(token),
-        "VS_PILOT_AFTER": "",
+        "VS_PILOT_AFTER": "12000.pbs101" if selection == "remaining" else "",
     }
     p = subprocess.run(
-        ["bash", str(ROOT / "scripts/submit_aspire_project_pilot.sh"), "all"], env=env, capture_output=True, text=True
+        ["bash", str(ROOT / "scripts/submit_aspire_project_pilot.sh"), selection],
+        env=env,
+        capture_output=True,
+        text=True,
     )
     assert p.returncode == 0, p.stderr
     lines = p.stdout.splitlines()
-    assert len(lines) == 8 and lines[0].startswith("qwen-image ") and lines[-1].startswith("sd-1.5 ")
+    expected = ["glm-image", "flux-dev", "sd-3.5-large", "z-image-turbo", "pixart-sigma", "sd-xl", "sd-1.5"]
+    if selection == "all":
+        expected.insert(0, "qwen-image")
+    assert [line.split()[0] for line in lines] == expected
+    count = len(expected)
     args = capture.read_text()
     assert args.count("depend=afterany:") == 7
-    assert len(list((tmp_path / "runtime/outputs").iterdir())) == 8
-    assert args.count(".pbs.log") == 8
+    if selection == "remaining":
+        assert "depend=afterany:12000.pbs101" in args
+    for i in range(1, count):
+        assert f"depend=afterany:{12345 + i}.pbs101" in args
+    assert len(list((tmp_path / "runtime/outputs").iterdir())) == count
+    assert args.count(".pbs.log") == count
     arguments = args.splitlines()
     destinations = [Path(arguments[i + 1]) for i, arg in enumerate(arguments) if arg == "-o"]
-    assert len({p.name for p in destinations}) == 8
+    assert len({p.name for p in destinations}) == count
     assert {p.parent for p in destinations} == {tmp_path / "runtime/logs"}
     assert "not-a-real-token" not in args
     assert token.name not in args + p.stdout + p.stderr
-    assert args.count(str(tmp_path / "runtime/hf-home/token")) == 8
+    assert args.count(str(tmp_path / "runtime/hf-home/token")) == count
     assert (tmp_path / "runtime/hf-home/token").read_text() == token.read_text()
