@@ -16,6 +16,23 @@ datasets    one schema     one      remove         one image   one verdict  safe
 
 Everything is configured in one file: [config/pipeline.json](config/pipeline.json).
 
+For local L2 paraphrase candidate preparation with Ollama, see
+[the L2 workflow](docs/l2_paraphrase_workflow.md). It uses the existing unified
+dataset, preserves parent links, resumes saved outcomes, and writes separate
+candidate exports and coverage reports. Automatic structural checks do not
+establish semantic equivalence or human validation.
+To exercise actual generation followed by a separate semantic classifier, see
+[the generation-and-classification test](docs/l2_generation_classification.md).
+Its controls expose known classifier failures before accepting research data.
+For original/rephrased text through actual image generation, safety detection
+and paired image alignment, see [the image-comparison guide](docs/l2_image_comparison.md).
+It includes the previous and revised Qwen instructions under matched image seeds.
+For the selected adult-nudity boundary cases run through the actual standard
+generate, nsfw and metrics stages, see [the core-pipeline pilot](docs/l2_nudity_project_pipeline.md).
+
+For a paired comparison of local L2 text generators, see
+[the Qwen–Gemma comparison](docs/l2_text_model_comparison.md).
+
 ## Quickstart
 
 ```bash

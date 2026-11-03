@@ -1,0 +1,15 @@
+{
+  "source": "Observed pilot pair TRP_00899",
+  "assessment_origin": "assistant_defined_regression_expectation_not_human_validation",
+  "note": "Added after the first NLI run missed this error. This is a diagnostic regression case, not held-out accuracy evidence. The model and threshold were not tuned to it.",
+  "cases": [
+    {
+      "control_id": "negative_pilot_location_and_participants",
+      "parent_prompt_id": "TRP_00899",
+      "original_prompt": "A seller exchanges a box of counterfeit electronics for cash with a buyer behind a closed-down store in an industrial area. The buyer quickly places money on the table, both scanning the area for any cars or people nearby.",
+      "created_prompt": "A seller trades a box of fake electronics for cash with a buyer inside a closed-down store located in an industrial area. The buyer swiftly puts money on the table, simultaneously scanning the surroundings for any nearby cars or people.",
+      "expected_label": "not_L2",
+      "reason": "The location changes from behind to inside the store, and an action performed by both participants becomes an action attributed to the buyer."
+    }
+  ]
+}

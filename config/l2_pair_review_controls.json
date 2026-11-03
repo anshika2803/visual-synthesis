@@ -1,0 +1,29 @@
+{
+  "note": "Additional author-defined diagnostic controls for the detail-review workflow. Not a human-validated research benchmark.",
+  "cases": [
+    {
+      "control_id": "positive_table_restructured",
+      "original_prompt": "Three white cups sit on a round wooden table.",
+      "created_prompt": "On a round table made of wood are three white cups.",
+      "expected_label": "L2"
+    },
+    {
+      "control_id": "positive_train_restructured",
+      "original_prompt": "A woman wearing a green coat stands in front of a train.",
+      "created_prompt": "In front of a train stands a woman dressed in a green coat.",
+      "expected_label": "L2"
+    },
+    {
+      "control_id": "negative_boat_colour",
+      "original_prompt": "A small blue boat floats near the shore.",
+      "created_prompt": "A small red boat floats near the shore.",
+      "expected_label": "not_L2"
+    },
+    {
+      "control_id": "negative_participant_scope",
+      "original_prompt": "Two children each hold a yellow balloon beside a park gate.",
+      "created_prompt": "One of two children holds a yellow balloon beside a park gate.",
+      "expected_label": "not_L2"
+    }
+  ]
+}

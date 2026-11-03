@@ -3,6 +3,7 @@
 
 import argparse
 import csv
+import errno
 import fnmatch
 import json
 import math
@@ -307,6 +308,23 @@ def collect_accounting(job_id):
     return result
 
 
+def save_accounting(out, report, job_id):
+    save(report, out / "accounting-final.json")
+    if (out / "trial_summary.json").exists():
+        summary = json.loads((out / "trial_summary.json").read_text())
+    else:
+        prep_path = out / "preparation.json"
+        prep = json.loads(prep_path.read_text()) if prep_path.exists() else {}
+        summary = {"model": prep.get("model"), "slurm_job_id": job_id, "status": "incomplete",
+                   "error": "job ended before it could write a trial summary; inspect accounting and logs"}
+    summary["accounting"] = report
+    states = [row.get("State", "") for row in report["rows"]]
+    if any(state.startswith(("OUT_OF_MEMORY", "TIMEOUT", "FAILED", "CANCELLED")) for state in states):
+        summary.update(status="blocked" if summary.get("status") == "blocked" else "failed",
+                       resource_limit_states=states)
+    save(summary, out / "trial_summary.json")
+
+
 def finish(out, exit_code, job_id):
     preparation = json.loads((out / "preparation.json").read_text()) if (out / "preparation.json").exists() else {}
     summary = {"model": preparation.get("model"), "exit_code": exit_code, "slurm_job_id": job_id,
@@ -388,7 +406,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["storage", "prepare", "finish", "collect", "repair-storage"])
     parser.add_argument("--model", choices=MODELS, default="sd-xl")
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--stdout-only", action="store_true",
+                        help="For storage/collect: print results without creating or updating any files.")
     parser.add_argument("--allow-download", action="store_true")
     parser.add_argument("--budget-gib", type=float)
     parser.add_argument("--attempt-cap-gib", type=float,
@@ -396,9 +416,14 @@ def main():
     parser.add_argument("--exit-code", type=int, default=0)
     parser.add_argument("--job-id", default=os.environ.get("SLURM_JOB_ID", ""))
     args = parser.parse_args()
+    if args.stdout_only and args.action not in ("storage", "collect"):
+        parser.error("--stdout-only is supported only for storage and collect")
+    if args.output is None and not args.stdout_only:
+        parser.error("--output is required unless --stdout-only is used")
     if args.action == "storage":
         report = storage_snapshot()
-        save(report, args.output)
+        if not args.stdout_only:
+            save(report, args.output)
     elif args.action == "prepare":
         args.output.mkdir(parents=True, exist_ok=True)
         report = prepare(args.model, args.output, args.allow_download, args.budget_gib, args.attempt_cap_gib)
@@ -407,23 +432,21 @@ def main():
     elif args.action == "repair-storage":
         report = repair_storage(args.output)
     else:
-        if not args.output.is_dir():
+        if not args.stdout_only and not args.output.is_dir():
             raise ValueError("trial directory does not exist")
         report = collect_accounting(args.job_id)
-        save(report, args.output / "accounting-final.json")
-        if (args.output / "trial_summary.json").exists():
-            summary = json.loads((args.output / "trial_summary.json").read_text())
-        else:
-            prep_path = args.output / "preparation.json"
-            prep = json.loads(prep_path.read_text()) if prep_path.exists() else {}
-            summary = {"model": prep.get("model"), "slurm_job_id": args.job_id, "status": "incomplete",
-                       "error": "job ended before it could write a trial summary; inspect accounting and logs"}
-        summary["accounting"] = report
-        states = [row.get("State", "") for row in report["rows"]]
-        if any(state.startswith(("OUT_OF_MEMORY", "TIMEOUT", "FAILED", "CANCELLED")) for state in states):
-            summary.update(status="blocked" if summary.get("status") == "blocked" else "failed",
-                           resource_limit_states=states)
-        save(summary, args.output / "trial_summary.json")
+        if not args.stdout_only:
+            try:
+                save_accounting(args.output, report, args.job_id)
+            except OSError as exc:
+                if exc.errno not in (errno.ENOSPC, errno.EDQUOT):
+                    raise
+                print(json.dumps(report, indent=2))
+                print(f"Accounting retrieved, but could not finish saving it: {exc}. "
+                      "Previously saved trial results remain intact. "
+                      "Stop downloads and inspect filesystem space, inodes and personal quota. "
+                      "Use collect --stdout-only for a query without file writes.", file=sys.stderr)
+                return 1
     print(json.dumps(report, indent=2))
     return 20 if report.get("status") == "blocked" else 0
 

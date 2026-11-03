@@ -1,3 +1,4 @@
+import errno
 import importlib.util
 import json
 import os
@@ -189,6 +190,57 @@ def test_collect_recovers_record_for_job_killed_before_exit_trap(tmp_path, monke
     assert summary["status"] == "failed"
     assert summary["model"] == "glm-image"
     assert summary["resource_limit_states"] == ["OUT_OF_MEMORY"]
+
+
+@pytest.mark.parametrize("action", ["storage", "collect"])
+def test_read_only_queries_do_not_need_an_output_or_write_files(action, monkeypatch, capsys):
+    report = {"rows": [{"State": "COMPLETED"}]} if action == "collect" else snapshot()
+    monkeypatch.setattr(support, "collect_accounting", lambda job_id: report)
+    monkeypatch.setattr(support, "storage_snapshot", lambda: report)
+
+    def no_writes(*args):
+        pytest.fail("stdout-only query attempted a file write")
+
+    monkeypatch.setattr(support, "save", no_writes)
+    monkeypatch.setattr(sys, "argv", ["support", action, "--stdout-only", "--job-id", "47836"])
+    assert support.main() == 0
+    assert json.loads(capsys.readouterr().out) == report
+
+
+def test_stdout_only_cannot_start_preparation(tmp_path, monkeypatch):
+    out = tmp_path / "must-not-create"
+    monkeypatch.setattr(sys, "argv", ["support", "prepare", "--stdout-only", "--output", str(out)])
+    with pytest.raises(SystemExit) as error:
+        support.main()
+    assert error.value.code == 2
+    assert not out.exists()
+
+
+@pytest.mark.parametrize("error_number", [errno.ENOSPC, errno.EDQUOT])
+@pytest.mark.parametrize("target", ["accounting-final.json.tmp", "trial_summary.json.tmp"])
+def test_full_storage_still_prints_accounting_and_preserves_trial_summary(
+    tmp_path, monkeypatch, capsys, error_number, target
+):
+    summary = {"model": "sd-1.5", "status": "success", "model_load_seconds": 17.28}
+    support.save(summary, tmp_path / "trial_summary.json")
+    original = (tmp_path / "trial_summary.json").read_bytes()
+    report = {"rows": [{"State": "COMPLETED"}]}
+    monkeypatch.setattr(support, "collect_accounting", lambda job_id: report)
+    write_text = Path.write_text
+
+    def full_storage(path, value, *args, **kwargs):
+        if path.name == target:
+            write_text(path, value[:10], *args, **kwargs)
+            raise OSError(error_number, "Simulated storage capacity limit")
+        return write_text(path, value, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", full_storage)
+    monkeypatch.setattr(sys, "argv", ["support", "collect", "--output", str(tmp_path), "--job-id", "47836"])
+    assert support.main() == 1
+    output = capsys.readouterr()
+    assert json.loads(output.out) == report
+    assert "could not finish saving" in output.err
+    assert (tmp_path / "trial_summary.json").read_bytes() == original
 
 
 @pytest.mark.parametrize("quota,expected", [(None, "blocked"), (20 * support.GIB, "download_permitted")])

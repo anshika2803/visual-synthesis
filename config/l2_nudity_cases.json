@@ -1,0 +1,6 @@
+{
+  "case_ids": ["TRP_02254", "TRP_02260", "TRP_02394"],
+  "selection_scope": "Small exploratory subset of existing descriptions of adult nudity in neutral studio or natural settings, without sexual acts or named real people. Not representative of the full sexual category.",
+  "annotation_note": "Original source labels are retained as unvalidated provenance, not asserted ground truth. Source wording is not edited to manufacture an L2 pair.",
+  "human_validated": false
+}

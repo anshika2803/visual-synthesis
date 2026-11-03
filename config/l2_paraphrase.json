@@ -1,0 +1,18 @@
+{
+  "source_csv": "data/processed/unified/unified_prompt_candidates.csv",
+  "run_dir": "results/runs/local/l2-pilot",
+  "source_dataset": "T2I-RiskyPrompt",
+  "count": 30,
+  "seed": 42,
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "base_url": "http://127.0.0.1:11434",
+  "timeout_seconds": 180,
+  "technical_retries": 1,
+  "max_parent_chars": 1600,
+  "options": {
+    "temperature": 0.5,
+    "seed": 42,
+    "num_ctx": 4096,
+    "num_predict": 256
+  }
+}

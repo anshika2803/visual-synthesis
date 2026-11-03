@@ -5,6 +5,9 @@ replace project files, install packages, change branches, remove caches, or push
 Git changes. The job activates **visual-safety** and uses the existing two-prompt
 fit mode: one warmup and two measured requests, generation only.
 
+Observed SDXL and SD 1.5 measurements, remaining model status, and follow-up
+commands are recorded in [TC2 trial results](tc2_trial_results.md).
+
 Verified allocation supplied by the user: account `stud`, partition `MGPU-TC2`,
 QoS `normal`, one GPU, ten CPUs, `30G` host RAM and `06:00:00` wall time. These
 are encoded in `scripts/tc2_resource_trial.sh`. GPU VRAM is a separate quantity;
@@ -98,8 +101,8 @@ Artifacts are isolated under
 | `benchmark/<MODEL>/worker.log` | Per-prompt progress and model exceptions |
 
 After the job completes, set `trial` to that exact output folder and collect
-final job/step accounting. This is a read-only accounting query and is suitable
-on the head node; it does not run a model:
+final job/step accounting. The Slurm query is suitable on the head node and
+does not run a model. The collector also saves JSON files in the trial folder:
 
 ```bash
 trial=results/benchmarks/tc2-JOBID-sd-xl-UNIQUE_SUFFIX
@@ -115,6 +118,72 @@ can be delayed, so rerun the query if still incomplete. See the
 
 The collector can create a failure summary even when an OOM kill or wall-time
 termination prevented the job's exit handler from finishing.
+
+### If collecting results reports no space left
+
+Stop new downloads and trials until storage capacity is resolved. An error
+writing `accounting-final.json.tmp` is a failure to persist accounting, not a
+new model failure. The existing trial summary is replaced only after its
+temporary file has been written successfully. The error alone does not show
+whether filesystem blocks, inode capacity or a storage quota was exhausted.
+
+These commands work with the existing cluster tools and do not save reports:
+
+```bash
+sacct -j 47836 -P --units=K \
+  --format=JobIDRaw,JobName,State,ExitCode,Elapsed,ReqMem,MaxRSS,AllocTRES,Reason
+df -h . "$HOME"
+df -i . "$HOME"
+du -sh models/* data/cache/huggingface "$HOME/.cache/huggingface" results/benchmarks
+```
+
+Run them in the repository and read their terminal output without redirecting
+it into the full filesystem. `df` reports filesystem capacity and inode use;
+available shared space does not establish personal quota. Do not delete model
+caches, trial outputs or unrelated checkpoints to make room automatically.
+
+The updated local helper supports terminal-only accounting and storage checks:
+
+```bash
+python scripts/tc2_trial_support.py collect --job-id 47836 --stdout-only
+python scripts/tc2_trial_support.py storage --stdout-only
+```
+
+These modes require no output path and do not create or update report files.
+Normal collection also prints the retrieved accounting if saving fails with
+ENOSPC or EDQUOT, emits a warning on stderr, and returns a nonzero exit code.
+Previously saved model measurements remain intact.
+
+### Account quota and the largest items in home
+
+If the helper cannot authenticate to TC2, run these commands in the user's
+existing TC2 terminal. They do not create report files or delete data. The
+verbose quota query includes both the current user's quotas and their groups'
+quotas, unlike the earlier user-only query. Group limits describe shared group
+capacity and must not be treated as a personal allocation. See the
+[quota manual](https://manpages.debian.org/unstable/quota/quota.1.en.html).
+
+```bash
+timeout 20s quota -v -s -u -g
+du -xhd2 "$HOME" | sort -hr | head -40
+find "$HOME" -xdev -type f -size +500M -printf '%s\t%p\n' \
+  | sort -nr | head -30 | numfmt --field=1 --to=iec
+du --inodes -x --max-depth=2 "$HOME" | sort -nr | head -20
+```
+
+The directory list includes hidden caches and Conda environments. Its first
+home-directory total describes measured use, not assigned capacity. Nested
+directory totals overlap. The file list ranks logical file sizes above
+500 MiB; it may differ from allocated usage for sparse or linked files. The
+last list ranks directory trees by inode count. The scans stay within home
+and do not follow symlinks into other directories or traverse other mounts.
+
+If the quota query prints no limits, the allocation remains unknown, not
+unlimited. Confirm remaining byte/file limits and any assigned project/scratch
+folder through TC2 account documentation or the administrator. Do not browse
+other users' directories to search for an assignment. The login notice points
+to a user guide in `/tc2share`, but does not itself establish a personal storage
+allocation.
 
 ## Remaining models: individual guarded downloads and trials
 
