@@ -34,8 +34,48 @@ export VS_PILOT_DISCOVERY=${VS_PILOT_DISCOVERY:-10}
 export VS_PILOT_VALIDATION=${VS_PILOT_VALIDATION:-6}
 export HF_TOKEN_PATH=${HF_TOKEN_PATH:-$VS_ASPIRE_STORAGE/hf-home/token}
 if [[ "${HF_TOKEN_PATH##*/}" == hf_* ]]; then
-  echo 'HF_TOKEN_PATH must name a token file, e.g. $HF_HOME/token; do not put a token value in its filename.' >&2
-  exit 2
+  # Legacy filenames can contain credential values. Read the path from the
+  # environment, never argv/output, and export only the conventional path to PBS.
+  HF_TOKEN_PATH=$("$VS_ASPIRE_PYTHON" - <<'PY'
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+destination = Path(os.environ["VS_ASPIRE_STORAGE"]) / "hf-home" / "token"
+
+def read_token(path):
+    with path.open("rb") as stream:
+        value = stream.read(8193)
+    if not value.strip() or len(value) > 8192:
+        raise ValueError("Invalid credential file")
+    return value
+
+try:
+    if not destination.exists():
+        value = read_token(Path(os.environ["HF_TOKEN_PATH"]))
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        descriptor, temporary = tempfile.mkstemp(prefix=".token-", dir=destination.parent)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(value)
+                stream.flush()
+                os.fsync(stream.fileno())
+            try:
+                os.link(temporary, destination)
+            except FileExistsError:
+                pass  # Another submission prepared it; never overwrite credentials.
+        finally:
+            os.unlink(temporary)
+    read_token(destination)
+except (OSError, ValueError):
+    sys.exit("Cannot reuse cached credentials. Set HF_TOKEN_PATH to $VS_ASPIRE_STORAGE/hf-home/token, then run hf auth login; see SETUP.md.")
+
+print(destination)
+PY
+  )
+  export HF_TOKEN_PATH
+  echo 'Using the standard credential file in runtime/hf-home/token; the original file is preserved.' >&2
 fi
 if [[ "$VS_PILOT_MODEL" == all || "$VS_PILOT_MODEL" == flux-dev || "$VS_PILOT_MODEL" == sd-3.5-large ]] && [ ! -r "$HF_TOKEN_PATH" ]; then
   echo 'Gated models require a readable HF_TOKEN_PATH file. Run hf auth login first; see SETUP.md.' >&2

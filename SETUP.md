@@ -176,6 +176,12 @@ the supported browser flow. `HF_TOKEN_PATH` names a **file**, not a token value.
 The submission helper passes only its path, never its contents. Keep credentials
 out of screenshots, Git and shared `.env` files. Exposed tokens should be revoked.
 
+If an older `HF_TOKEN_PATH` names a readable file beginning with `hf_`, the
+submission helper securely copies its contents to `runtime/hf-home/token`.
+It preserves the original file, prefers an existing standard token file, and
+passes only the standard path to PBS. No second login is needed for a valid
+cached credential. If neither file is usable, repeat the login commands above.
+
 Verify gated-file access without downloading weights:
 
 ```bash

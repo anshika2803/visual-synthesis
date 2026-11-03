@@ -435,6 +435,61 @@ def test_submission_routes_pbs_output_and_exports_token_path_not_value(tmp_path)
     assert "qwen-image" in process.stderr
 
 
+@pytest.mark.parametrize("credentials", ["legacy", "standard", "missing", "empty"])
+def test_submission_normalizes_legacy_token_filename_without_exposing_it(tmp_path, credentials):
+    git = tmp_path / "git"
+    git.write_text('#!/bin/bash\nprintf "swara/experiments\\n"\n')
+    git.chmod(0o755)
+    qsub = tmp_path / "qsub"
+    qsub.write_text(
+        '#!/bin/bash\nprintf "%s\\n" "$HF_TOKEN_PATH" > "$CAPTURE_TOKEN_PATH"\nprintf "12345.pbs101\\n"\n'
+    )
+    qsub.chmod(0o755)
+    legacy = tmp_path / "hf_fake-legacy-filename"
+    if credentials != "missing":
+        legacy.write_text("" if credentials == "empty" else "fake-legacy-credential")
+    canonical = tmp_path / "runtime/hf-home/token"
+    if credentials == "standard":
+        canonical.parent.mkdir(parents=True)
+        canonical.write_text("fake-existing-credential")
+    capture = tmp_path / "submitted-token-path"
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "VS_ASPIRE_PROJECT": "test-project",
+        "VS_ASPIRE_BUDGET_GIB": "500",
+        "VS_ASPIRE_STORAGE": str(tmp_path / "runtime"),
+        "VS_ASPIRE_PYTHON": sys.executable,
+        "VS_ASPIRE_GIT": str(git),
+        "HF_TOKEN_PATH": str(legacy),
+        "CAPTURE_TOKEN_PATH": str(capture),
+        "VS_PILOT_AFTER": "",
+    }
+    process = subprocess.run(
+        ["bash", str(ROOT / "scripts/submit_aspire_project_pilot.sh"), "qwen-image"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    combined = process.stdout + process.stderr
+    for sensitive in (legacy.name, "fake-legacy-credential", "fake-existing-credential"):
+        assert sensitive not in combined
+    if credentials in ("missing", "empty"):
+        assert process.returncode != 0
+        assert "hf auth login" in process.stderr
+        assert not capture.exists() and not canonical.exists()
+    else:
+        assert process.returncode == 0, process.stderr
+        assert capture.read_text().strip() == str(canonical)
+        assert canonical.read_text() == (
+            "fake-existing-credential" if credentials == "standard" else "fake-legacy-credential"
+        )
+        assert legacy.read_text() == "fake-legacy-credential"
+        if credentials == "legacy":
+            assert canonical.stat().st_mode & 0o777 == 0o600
+        assert not list(canonical.parent.glob(".token-*"))
+
+
 def test_aggregate_reports_extended_core_and_mixed_scopes(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT / "scripts"))
     spec = importlib.util.spec_from_file_location("pilot_scope_test", ROOT / "scripts/aspire_project_pilot.py")
@@ -476,10 +531,11 @@ if [ -f "$JOB_COUNTER" ]; then read -r n < "$JOB_COUNTER"; fi
 n=$((n+1))
 printf '%s\\n' "$n" > "$JOB_COUNTER"
 printf '%s\\n' "$@" >> "$CAPTURE_ARGS"
+printf '%s\\n' "$HF_TOKEN_PATH" >> "$CAPTURE_ARGS"
 printf '%s.pbs101\\n' "$((12345+n))"
 """)
     qsub.chmod(0o755)
-    token = tmp_path / "token"
+    token = tmp_path / "hf_fake-filename"
     token.write_text("not-a-real-token")
     capture = tmp_path / "args.txt"
     env = {
@@ -510,3 +566,6 @@ printf '%s.pbs101\\n' "$((12345+n))"
     assert len({p.name for p in destinations}) == 8
     assert {p.parent for p in destinations} == {tmp_path / "runtime/logs"}
     assert "not-a-real-token" not in args
+    assert token.name not in args + p.stdout + p.stderr
+    assert args.count(str(tmp_path / "runtime/hf-home/token")) == 8
+    assert (tmp_path / "runtime/hf-home/token").read_text() == token.read_text()

@@ -95,7 +95,12 @@ The helper issues the exact `qsub -P ... -N ... -o ... -v ...` submission,
 using `scripts/aspire_project_pilot.sh`. It exports explicit shared Git/Python
 paths and the credential **file path**, restores PBS's submission PATH and
 verifies `swara/experiments`. It never switches branches or deletes files.
-Login work is limited to path/branch checks, directory creation and submission.
+Login work is limited to path/branch checks, credential-file normalization,
+directory creation and submission. A legacy token filename beginning with `hf_`
+is replaced in the job environment by the standard workspace `hf-home/token`
+path. The helper reuses an existing standard file or securely copies the legacy
+file without overwriting credentials; it never prints the legacy filename or
+token contents.
 Evaluator preparation validates flat Transformers CLIP repositories separately
 from Diffusers generators: CLIP requires config/processor files and root weights,
 not `model_index.json`. Missing files and unknown byte sizes still block downloads.
