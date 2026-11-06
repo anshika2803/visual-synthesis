@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Shared ASPIRE execution overrides; layer after e1e6.json and select the model with --model.",
+    "Use native 16-bit weights with CPU offload on the A100/110 GB allocation.",
+    "Qwen's TC2 FP8 exception is disabled here. No NF4/FP8 substitution is made automatically.",
+    "Frozen prompts, seeds, generation parameters and hook layers remain in e1e6.json."
+  ],
+  "run": {"mode": "incremental"},
+  "generate": {"workers": 1, "batch_size": 1, "stop_on_error": true},
+  "models": {
+    "sd-1.5": {"device_map": null, "enable_cpu_offload": true},
+    "sd-xl": {"device_map": null, "enable_cpu_offload": true},
+    "sd-3.5-large": {"device_map": null, "enable_cpu_offload": true},
+    "pixart-sigma": {"device_map": null, "enable_cpu_offload": true},
+    "flux-dev": {"device_map": null, "enable_cpu_offload": true},
+    "qwen-image": {"dtype": "bfloat16", "quantization": null, "device_map": null, "enable_cpu_offload": true},
+    "z-image-turbo": {"device_map": null, "enable_cpu_offload": true},
+    "glm-image": {"device_map": null, "enable_cpu_offload": true}
+  },
+  "nsfw": {"workers": 1, "max_error_rate": 0.0},
+  "logging": {"keep_runs": 200}
+}

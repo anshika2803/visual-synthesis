@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -N vs-protocol
+#PBS -q normal
+#PBS -l select=1:ngpus=1:ncpus=16:mem=110GB
+#PBS -l walltime=06:00:00
+#PBS -j oe
+# Generic ASPIRE 2A job: set VS_PROTOCOL_MODEL and VS_PROTOCOL_PHASE before qsub.
+# The Python submit command supplies these values and handles logs/dependencies.
+set -euo pipefail
+ulimit -c 0
+: "${PBS_JOBID:?Submit this file with qsub}"
+export PATH="${PBS_O_PATH:-${PATH:-/usr/bin:/bin}}"
+export VS_ASPIRE_REPO=${VS_ASPIRE_REPO:-${PBS_O_WORKDIR:?Missing submission directory}}
+cd "$VS_ASPIRE_REPO"
+export VS_ASPIRE_PYTHON=${VS_ASPIRE_PYTHON:-$HOME/.conda/envs/visual-safety/bin/python}
+export VS_ASPIRE_GIT=${VS_ASPIRE_GIT:-${VS_ASPIRE_PYTHON%/*}/git}
+: "${VS_ASPIRE_PROJECT:?Set the NSCC project ID, also used for continuations}"
+: "${VS_ASPIRE_STORAGE:?Set the absolute scratch runtime directory}"
+: "${VS_ASPIRE_BUDGET_GIB:?Set the verified runtime budget in GiB}"
+: "${VS_PROTOCOL_MODEL:?Set the configured model ID}"
+export VS_PROTOCOL_PHASE=${VS_PROTOCOL_PHASE:-ready}
+export VS_PROTOCOL_TIER=${VS_PROTOCOL_TIER:-auto}
+export VS_PROTOCOL_WALL_SECONDS=${VS_PROTOCOL_WALL_SECONDS:-21600}
+export VS_PROTOCOL_JOB_INDEX=${VS_PROTOCOL_JOB_INDEX:-1}
+export VS_PROTOCOL_MAX_JOBS=${VS_PROTOCOL_MAX_JOBS:-12}
+export VS_PROTOCOL_ALLOW_DOWNLOAD=${VS_PROTOCOL_ALLOW_DOWNLOAD:-0}
+export PATH="${VS_ASPIRE_PYTHON%/*}:${VS_ASPIRE_GIT%/*}:$PATH"
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-16}}
+export MKL_NUM_THREADS=$OMP_NUM_THREADS TOKENIZERS_PARALLELISM=false
+exec "$VS_ASPIRE_PYTHON" -u scripts/aspire_protocol.py run

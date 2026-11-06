@@ -46,6 +46,11 @@ project into it (`EXTRAS=dev` for the data stages only), and
 `make conda-run CMD="run all"` runs anything inside it without `conda activate`.
 Rendered Slurm jobs activate that same environment themselves.
 
+For the frozen E1–E7 experiments on ASPIRE, use the
+[generic PBS protocol runner](docs/aspire_protocol.md). One `.pbs` file and a
+shared Python controller handle `--model qwen-image`, `--model pixart-sigma`, or
+another configured model, with setup comparisons and separate resumable workspaces.
+
 ## The stages
 
 | # | Stage | Reads | Writes (in its run folder) |

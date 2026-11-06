@@ -35,6 +35,8 @@ env/
 data/cache/
 models/
 logs/
+# ASPIRE caches, generated images and protocol checkpoints stay local.
+/runtime/
 
 # Results: exports are derived data, but the CSVs kept for reference are small.
 results/runs/
