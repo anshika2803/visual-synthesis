@@ -105,6 +105,10 @@ DEFAULTS = {
             "repo_id": "openai/clip-vit-base-patch32",
         },
         "fid-inception-v3": {"label": "Inception-v3 FID", "kind": "fid", "backend": "local", "feature": 2048},
+        "clip-iqa-vit-base-patch16": {
+            "label": "CLIP-IQA image quality ('Good photo.' vs 'Bad photo.')", "kind": "iqa", "backend": "local",
+            "repo_id": "openai/clip-vit-base-patch16",
+        },
     },
     "stages": {},
     "benchmark": {"l1_input": "data/runs/s04_postprocess/real1/unified_deduplicated.parquet"},
@@ -134,11 +138,25 @@ DEFAULTS = {
         "negative_prompt": None,
         "save_format": "png",  # png | jpeg | webp
         "jpeg_quality": 95,
+        "png_compress_level": 6,  # 0-9; lower is faster, and the pixels are identical
         "image_template": "{prompt_id}_{seed:08d}",
         "image_subdir": "images",
         "output_name": "generations.parquet",
         "log_every": 10,
         "stop_on_error": False,
+        # E4: save the pooled activations of models.<id>.hook.layers (all of them when `layers` is None).
+        "capture": {"enabled": False, "layers": None, "subdir": "activations"},
+        # E5/E6: edit one layer along an E4 direction (see activations.py for the formulas).
+        "intervention": {
+            "enabled": False,
+            "e4_dir": None,  # results/e4/<model>/ written by scripts/e4_analyze.py
+            "mode": "ablation",  # ablation | steering
+            "vector": "safety",  # safety (mean difference) | probe | random:<seed>
+            "alpha": 0.0,
+            "layer": None,  # None = the layer E4 chose; another candidate layer is an ablation
+            "passes": "all",  # all | cond: edit the unconditional CFG pass too, or not
+            "steps": [0.0, 1.0],  # edit only while step / num_steps is in [start, end)
+        },
     },
     "nsfw": {
         "detector": "nudenet",
@@ -162,10 +180,20 @@ DEFAULTS = {
         # the stage finds the generate run from a chained run_id where possible.
         "generations_input": None,
         "prompts_input": None,
+        # A second nsfw run over the same images (e.g. clip-h14 next to nudenet).
+        # Its verdict is combined with the primary one: "or" flags an image when
+        # either detector does, "and" only when both do.
+        "secondary_detections": None,
+        "combine": "or",
+        # Headline ASR only covers prompts of this category: the nudity detectors
+        # cannot see violence, drugs, ... Other categories get a "Nudity Flag Rate".
+        "scope_category": "sexual",
+        "images_name": "image_metrics.parquet",
         "attack": {"enabled": True, "attempts_name": "attack_results.parquet",
                    "by_config_name": "attack_by_config.parquet"},
         "alignment": {"enabled": True, "model": "clip-vit-base-patch32", "batch_size": 16},
         "fid": {"enabled": False, "model": "fid-inception-v3", "reference_images": None, "batch_size": 16},
+        "quality": {"enabled": False, "model": "clip-iqa-vit-base-patch16", "batch_size": 16},
         # Queries are evaluated against the detection table.  Add project
         # columns such as safety_mode/intervened to enable the last three.
         "asr_slices": {
@@ -229,9 +257,10 @@ DATASET_DEFAULTS = {
 # One entry of `models`.
 MODEL_DEFAULTS = {
     "label": None,
+    "architecture": None,  # e.g. UNet, MMDiT; groups the cross-model tables
     "backend": "diffusers",  # diffusers | fake (fake = no weights, for tests)
     "repo_id": None,
-    "family": "auto",  # auto | stable_diffusion | stable_diffusion_xl | stable_diffusion_3
+    "family": "auto",  # a key of PIPELINES in backends/image.py
     "local_dir": None,  # folder under paths.models; defaults to the id
     "revision": None,
     "variant": None,
@@ -249,6 +278,20 @@ MODEL_DEFAULTS = {
     "enable_xformers": False,
     "safety_checker": False,
     "enable_cpu_offload": False,
+    "device_map": None,  # "cuda": load weights straight to the GPU (little host RAM); no .to() afterwards
+    "generation_kwargs": {},  # pipeline-specific arguments, e.g. Qwen's true_cfg_scale
+    # Store these components' weights in fewer bits: fp8 | int8 | nf4 | fp4 (None = dtype).
+    # A quantized model is a different model: check it with `e1e6_report.py precision` first.
+    "quantization": None,
+    "quantize_components": ["transformer"],
+    # Where activations are read and edited (E4-E6); see activations.py.
+    "hook": {
+        "layers": [],  # module paths, e.g. "transformer.transformer_blocks.19"
+        "output_index": None,  # element of a tuple output that holds the image stream
+        "cfg": "batch_uncond_first",  # batch_uncond_first | batch_cond_first | sequential
+        "pixels_per_token": None,  # DiTs: image tokens = (H / p) * (W / p); None for UNet feature maps
+        "joint": None,  # image_first | image_last when the stream also holds the text tokens
+    },
     "allow_patterns": [],  # which repo files to download; empty = all
 }
 
@@ -321,7 +364,10 @@ ENTRY_DEFAULTS = {
 }
 
 # Dict-valued keys whose contents are free-form, so they are not typo-checked.
-FREE_FORM = {"taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters", "headers", "asr_slices"}
+FREE_FORM = {
+    "taxonomy", "set_env", "category_map", "label_thresholds", "params", "filters", "headers", "asr_slices",
+    "generation_kwargs",
+}
 
 ENV_OVERRIDES = {
     "VS_LOG_LEVEL": "logging.level",
@@ -474,6 +520,8 @@ def unknown_keys(cfg):
 
 def validate(cfg):
     """Check values and cross-references. Returns a list of problems (empty = valid)."""
+    from visual_synthesis.activations import CFG_LAYOUTS, JOINT_LAYOUTS, MODES, PASSES
+    from visual_synthesis.backends.image import QUANTIZATION
     from visual_synthesis.pipeline import STAGE_NAMES
     from visual_synthesis.schema import BENCHMARK_LEVELS, RISK_LEVELS, TRANSFORMATIONS
 
@@ -508,19 +556,41 @@ def validate(cfg):
     for name, model in cfg["models"].items():
         if model["backend"] == "diffusers" and not model["repo_id"]:
             problems.append(f"models.{name}.repo_id is required")
+        if model["quantization"] not in (None, *QUANTIZATION):
+            problems.append(f"models.{name}.quantization must be null or one of {sorted(QUANTIZATION)}")
+        if model["hook"]["cfg"] not in CFG_LAYOUTS:
+            problems.append(f"models.{name}.hook.cfg must be one of {list(CFG_LAYOUTS)}")
+        if model["hook"]["joint"] not in (None, *JOINT_LAYOUTS):
+            problems.append(f"models.{name}.hook.joint must be null or one of {list(JOINT_LAYOUTS)}")
+
+    intervention = cfg["generate"]["intervention"]
+    if intervention["mode"] not in MODES:
+        problems.append(f"generate.intervention.mode must be one of {list(MODES)}")
+    if intervention["passes"] not in PASSES:
+        problems.append(f"generate.intervention.passes must be one of {list(PASSES)}")
+    vector = str(intervention["vector"])
+    if vector not in ("safety", "probe") and not (vector.startswith("random:") and vector[7:].isdigit()):
+        problems.append("generate.intervention.vector must be safety, probe or random:<seed>")
+    start, end = intervention["steps"]
+    if not 0 <= start < end <= 1:
+        problems.append("generate.intervention.steps must be [start, end] with 0 <= start < end <= 1")
+    if intervention["enabled"] and not intervention["e4_dir"]:
+        problems.append("generate.intervention.e4_dir is required when the intervention is enabled")
+    if cfg["metrics"]["combine"] not in ("or", "and"):
+        problems.append("metrics.combine must be or / and")
 
     for name, model in cfg["metric_models"].items():
         where = f"metric_models.{name}"
-        if model["kind"] not in ("clip", "fid"):
-            problems.append(f"{where}.kind must be clip or fid")
+        if model["kind"] not in ("clip", "fid", "iqa"):
+            problems.append(f"{where}.kind must be clip, fid or iqa")
         if model["backend"] not in ("local", "api"):
             problems.append(f"{where}.backend must be local or api")
-        if model["backend"] == "local" and model["kind"] == "clip" and not model["repo_id"]:
+        if model["backend"] == "local" and model["kind"] in ("clip", "iqa") and not model["repo_id"]:
             problems.append(f"{where}.repo_id is required for a local CLIP evaluator")
         if model["backend"] == "api" and not model["endpoint"]:
             problems.append(f"{where}.endpoint is required for an API evaluator")
 
-    for name in ("alignment", "fid"):
+    for name in ("alignment", "fid", "quality"):
         evaluator = cfg["metrics"][name]
         if evaluator["enabled"] and evaluator["model"] not in cfg["metric_models"]:
             problems.append(f"metrics.{name}.model={evaluator['model']!r} is not defined under 'metric_models'")

@@ -36,6 +36,11 @@ dependencies:
       - transformers>=4.41
       - accelerate>=0.32
       - safetensors>=0.4
+      - sentencepiece>=0.2
+      - protobuf>=4.25
+      # [project.optional-dependencies].quant -- 8- and 4-bit weights for the largest models
+      - bitsandbytes>=0.45
+      - torchao>=0.10
       # [project.optional-dependencies].nsfw -- the NudeNet detector
       - nudenet>=3.4.2
       - onnxruntime>=1.17
@@ -49,6 +54,7 @@ dependencies:
       - matplotlib>=3.8
       - torchmetrics>=1.4
       - torch-fidelity>=0.3
+      - scikit-learn>=1.4
       # [project.optional-dependencies].dev -- tests and lint
       - pytest>=8.2
       - ruff>=0.5

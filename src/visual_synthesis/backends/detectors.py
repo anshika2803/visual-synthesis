@@ -261,10 +261,13 @@ class ClipH14Detector:
 
         with torch.inference_mode():
             embeds = self.vision_model(**inputs).image_embeds
-            logits = self.head(embeds)
-            score = float(torch.sigmoid(logits).squeeze().item())
+            raw = float(torch.sigmoid(self.head(embeds)).squeeze().item())
+            unit = float(torch.sigmoid(self.head(torch.nn.functional.normalize(embeds, dim=-1))).squeeze().item())
 
-        return {"nsfw": round(score, 6)}
+        # LAION does not document whether the head expects L2-normalized
+        # embeddings, so both scores are kept; the detector's flag_labels
+        # picks the one calibration chose (calibration.py).
+        return {"nsfw": round(raw, 6), "nsfw_l2": round(unit, 6)}
 
     def unload(self):
         if self.vision_model is None and self.head is None:

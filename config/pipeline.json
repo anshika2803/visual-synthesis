@@ -265,7 +265,10 @@
       "files": ["h14_nsfw.pth"],
       "repo_id": "laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
       "allow_patterns": ["model.safetensors", "config.json", "preprocessor_config.json"],
-      "threshold": 0.5,
+      "_threshold": "Calibrated 2026-11-06 (plan §0.3 A2, results/calibration/calibration_A.json): nsfw_l2 AUC 0.949 > nsfw 0.923; best Youden J at 0.55.",
+      "threshold": 0.55,
+      "_flag_labels": "nsfw = head on raw embeddings, nsfw_l2 = on L2-normalized ones; keep the calibrated one (calibration.py).",
+      "flag_labels": ["nsfw_l2"],
       "_comment": "Head is h14_nsfw.pth (LAION). CLIP backbone embeddings (1024-d ViT-H/14) live under clip/.",
       "params": {
         "clip_model": "ViT-H-14",

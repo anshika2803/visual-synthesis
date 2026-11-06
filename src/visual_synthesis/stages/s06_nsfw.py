@@ -47,6 +47,11 @@ CONTEXT_COLUMNS = [
     # metrics stage able to report safety-on/off and post-intervention ASR.
     "safety_mode", "intervened", "refused", "is_refused", "refusal",
     "attack_method", "attack_config", "case_number", "evaluation_seed", "source_file",
+    # E1-E7: the prompt table's groups, and the condition the image was generated under.
+    "seed", "subset_group", "subset_split", "parent_prompt_id", "reference_prompt", "language",
+    "transformation_method", "precision", "intervention_mode", "intervention_vector", "intervention_alpha",
+    "intervention_layer", "intervention_passes", "intervention_steps", "intervention_relative_change",
+    "activation_path",
 ]
 
 

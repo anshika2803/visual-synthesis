@@ -1,0 +1,248 @@
+{
+  "_comment": [
+    "E1-E7 protocol, layered last: -c config/pipeline.json -c config/pipeline.hpc.json -c config/e1e6.json",
+    "Generation settings follow each model card (D7). hook = where E4-E6 read and edit activations;",
+    "every hook must pass scripts/validate_hooks.py on the server before E4 (docs/e1_e6_research_plan.md section 6).",
+    "Layer choice: 5 candidates per model at about 0, 25, 50, 75 and 100% depth; UNets use the cross-attention",
+    "transformer of each stage, whose output feeds both the next block and the skip connection.",
+    "quantization stays null until the precision check passes (e1e6_report.py precision)."
+  ],
+
+  "download": {
+    "models": ["sd-1.5", "sd-xl", "sd-3.5-large", "pixart-sigma", "flux-dev", "qwen-image", "z-image-turbo", "glm-image"],
+    "detectors": ["clip-h14"]
+  },
+
+  "generate": {
+    "_png_compress_level": "1 = fastest PNG encoding; the pixels are identical to level 6.",
+    "png_compress_level": 1
+  },
+
+  "models": {
+    "sd-1.5": {
+      "label": "Stable Diffusion 1.5",
+      "architecture": "UNet",
+      "repo_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "family": "stable_diffusion",
+      "variant": "fp16",
+      "dtype": "float16",
+      "num_inference_steps": 30,
+      "guidance_scale": 7.5,
+      "width": 512,
+      "height": 512,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["*.json", "*.txt", "*.fp16.safetensors", "tokenizer/**", "scheduler/**"],
+      "hook": {
+        "layers": [
+          "unet.down_blocks.1.attentions.1",
+          "unet.down_blocks.2.attentions.1",
+          "unet.mid_block.attentions.0",
+          "unet.up_blocks.1.attentions.2",
+          "unet.up_blocks.2.attentions.2"
+        ],
+        "output_index": 0,
+        "cfg": "batch_uncond_first"
+      }
+    },
+
+    "sd-xl": {
+      "architecture": "UNet",
+      "dtype": "float16",
+      "enable_attention_slicing": false,
+      "hook": {
+        "layers": [
+          "unet.down_blocks.1.attentions.1",
+          "unet.down_blocks.2.attentions.1",
+          "unet.mid_block.attentions.0",
+          "unet.up_blocks.0.attentions.2",
+          "unet.up_blocks.1.attentions.2"
+        ],
+        "output_index": 0,
+        "cfg": "batch_uncond_first"
+      }
+    },
+
+    "sd-3.5-large": {
+      "device_map": "cuda",
+      "architecture": "MMDiT",
+      "enable_attention_slicing": false,
+      "hook": {
+        "layers": [
+          "transformer.transformer_blocks.0",
+          "transformer.transformer_blocks.9",
+          "transformer.transformer_blocks.19",
+          "transformer.transformer_blocks.28",
+          "transformer.transformer_blocks.37"
+        ],
+        "_output_index": "JointTransformerBlock returns (text, image); the last block returns (None, image).",
+        "output_index": 1,
+        "cfg": "batch_uncond_first",
+        "pixels_per_token": 16
+      }
+    },
+
+    "pixart-sigma": {
+      "device_map": "cuda",
+      "label": "PixArt-Sigma XL 1024",
+      "architecture": "DiT (cross-attention)",
+      "repo_id": "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+      "family": "pixart_sigma",
+      "dtype": "float16",
+      "num_inference_steps": 20,
+      "guidance_scale": 4.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**"],
+      "hook": {
+        "layers": [
+          "transformer.transformer_blocks.0",
+          "transformer.transformer_blocks.7",
+          "transformer.transformer_blocks.14",
+          "transformer.transformer_blocks.21",
+          "transformer.transformer_blocks.27"
+        ],
+        "cfg": "batch_uncond_first",
+        "pixels_per_token": 16
+      }
+    },
+
+    "flux-dev": {
+      "device_map": "cuda",
+      "label": "FLUX.1-dev",
+      "architecture": "MMDiT + single-stream DiT (rectified flow)",
+      "repo_id": "black-forest-labs/FLUX.1-dev",
+      "family": "flux",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": 3.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "text_encoder_2/**", "tokenizer/**", "tokenizer_2/**", "transformer/**", "vae/**"],
+      "hook": {
+        "layers": [
+          "transformer.transformer_blocks.0",
+          "transformer.transformer_blocks.14",
+          "transformer.single_transformer_blocks.9",
+          "transformer.single_transformer_blocks.23",
+          "transformer.single_transformer_blocks.37"
+        ],
+        "_output_index": "Both block types return (text, image) in diffusers >= 0.35; older single blocks return one joint tensor (then set joint: image_last).",
+        "output_index": 1,
+        "_cfg": "guidance is distilled: one call per step, so every call is conditional.",
+        "cfg": "sequential",
+        "pixels_per_token": 16
+      }
+    },
+
+    "qwen-image": {
+      "label": "Qwen-Image",
+      "architecture": "MMDiT (20B)",
+      "repo_id": "Qwen/Qwen-Image",
+      "family": "qwen_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": null,
+      "negative_prompt": " ",
+      "generation_kwargs": {"true_cfg_scale": 4.0},
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "_quantization": "bf16 needs ~57 GB (transformer 41 + text encoder 17) > one 46 GB GPU, and 30 GB host RAM rules out offload: fp8 transformer (needs an L40S), bf16 text encoder. A reported deviation (D10).",
+      "device_map": "cuda",
+      "quantization": "fp8",
+      "quantize_components": ["transformer"],
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**", "processor/**"],
+      "hook": {
+        "layers": [
+          "transformer.transformer_blocks.0",
+          "transformer.transformer_blocks.15",
+          "transformer.transformer_blocks.30",
+          "transformer.transformer_blocks.45",
+          "transformer.transformer_blocks.59"
+        ],
+        "output_index": 1,
+        "_cfg": "true CFG: a cond call, then an uncond call, per step.",
+        "cfg": "sequential",
+        "pixels_per_token": 16
+      }
+    },
+
+    "z-image-turbo": {
+      "device_map": "cuda",
+      "label": "Z-Image-Turbo",
+      "architecture": "single-stream DiT (6B)",
+      "repo_id": "Tongyi-MAI/Z-Image-Turbo",
+      "family": "z_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 9,
+      "guidance_scale": 0.0,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**"],
+      "hook": {
+        "layers": [
+          "transformer.layers.0",
+          "transformer.layers.7",
+          "transformer.layers.15",
+          "transformer.layers.22",
+          "transformer.layers.29"
+        ],
+        "_joint": "the main layers run on one [image tokens, caption tokens] sequence.",
+        "joint": "image_first",
+        "_cfg": "with guidance > 0 the batch is [cond, uncond]; turbo runs without CFG.",
+        "cfg": "batch_cond_first",
+        "pixels_per_token": 16
+      }
+    },
+
+    "glm-image": {
+      "device_map": "cuda",
+      "label": "GLM-Image",
+      "architecture": "autoregressive + DiT decoder",
+      "repo_id": "zai-org/GLM-Image",
+      "family": "glm_image",
+      "dtype": "bfloat16",
+      "num_inference_steps": 50,
+      "guidance_scale": 1.5,
+      "width": 1024,
+      "height": 1024,
+      "enable_attention_slicing": false,
+      "quantize_components": ["transformer", "vision_language_encoder"],
+      "allow_patterns": ["model_index.json", "scheduler/**", "text_encoder/**", "tokenizer/**", "transformer/**", "vae/**", "processor/**", "vision_language_encoder/**"],
+      "hook": {
+        "_layers": "The DiT decoder, like every other model; the prompt reaches it through the AR model's prior tokens.",
+        "layers": [
+          "transformer.transformer_blocks.0",
+          "transformer.transformer_blocks.7",
+          "transformer.transformer_blocks.15",
+          "transformer.transformer_blocks.22",
+          "transformer.transformer_blocks.29"
+        ],
+        "_output_index": "GlmImageTransformerBlock returns (image, text): the reverse of SD 3.5 / FLUX / Qwen.",
+        "output_index": 0,
+        "cfg": "sequential",
+        "pixels_per_token": 16
+      }
+    }
+  },
+
+  "metrics": {
+    "quality": { "enabled": true },
+    "asr_slices": {
+      "L1": { "query": "benchmark_level == 'L1'" },
+      "L2": { "query": "benchmark_level == 'L2'" },
+      "L3": { "query": "benchmark_level == 'L3'" },
+      "L4": { "query": "benchmark_level == 'L4'" },
+      "L5": { "query": "benchmark_level == 'L5'" },
+      "L6": { "query": "benchmark_level == 'L6'" }
+    }
+  },
+
+  "slurm": {
+    "gpu": { "time": "06:00:00", "cpus_per_task": 10, "mem": "30G" },
+    "cpu": { "time": "06:00:00", "cpus_per_task": 10, "mem": "30G" }
+  }
+}

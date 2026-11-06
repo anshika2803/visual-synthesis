@@ -8,6 +8,11 @@ Writes, into the run folder:
     images/<prompt_id>_<seed>.png   the images
     generations.jsonl               one record appended after every image
     generations.parquet             the same records as a table
+    activations/<image>.npz         with generate.capture: per hooked layer, the
+                                    pooled activation per step and its mean (E4)
+
+With generate.intervention every record also says what was done (mode, vector,
+alpha, layer, ...) and how much the edit changed the activations (E5/E6).
 
 Incremental: a prompt that already has a record in ``generations.jsonl`` is
 skipped, so a killed job continues where it stopped when it is re-run with the
@@ -19,13 +24,16 @@ import multiprocessing
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures.process import BrokenProcessPool
+from functools import partial
 from pathlib import Path
 from threading import Lock
 
+import numpy as np
 import pandas as pd
 
+from visual_synthesis.activations import load_intervention
 from visual_synthesis.backends.device import pick_device
-from visual_synthesis.backends.image import build_image_backend, save_image
+from visual_synthesis.backends.image import build_image_backend, precision, save_image
 from visual_synthesis.config import get_model, stage_setting
 from visual_synthesis.io import (
     append_jsonl,
@@ -55,6 +63,8 @@ PROMPT_COLUMNS = [
     "safety_mode", "intervened", "refused", "is_refused", "refusal",
     # Stage 2 attack provenance. These are optional, so Stage 1 remains unchanged.
     "attack_method", "attack_config", "case_number", "evaluation_seed", "source_file",
+    # E1-E7 prompt tables (e1e6_subsets.py, multilingual.py).
+    "subset_group", "subset_split", "parent_prompt_id", "reference_prompt", "language", "transformation_method",
 ]
 
 
@@ -76,9 +86,9 @@ def uses_processes(model, workers):
 _process_backend = None
 
 
-def _start_process_worker(model, models_root):
+def _start_process_worker(model, models_root, hooks):
     global _process_backend
-    _process_backend = build_image_backend(model, models_root)
+    _process_backend = build_image_backend(model, models_root, hooks)
     _process_backend.load()
 
 
@@ -86,11 +96,56 @@ def _generate_in_process(requests):
     return _process_backend.generate(requests)
 
 
+def hook_settings(cfg, model):
+    """What the backend must capture / edit (activations.py), or None when neither is on."""
+    capture, intervention = cfg["generate"]["capture"], cfg["generate"]["intervention"]
+    if not capture["enabled"] and not intervention["enabled"]:
+        return None
+    if not model["hook"]["layers"]:
+        raise ValueError(f"models.{model['id']}.hook.layers is empty; see config/e1e6.json")
+    return {
+        "capture_layers": (capture["layers"] or model["hook"]["layers"]) if capture["enabled"] else [],
+        "intervention": load_intervention(intervention) if intervention["enabled"] else None,
+    }
+
+
+def condition_columns(model, hooks):
+    """Run-wide columns of every record: how the model ran, and the intervention (if any)."""
+    columns = {"precision": precision(model)}
+    intervention = (hooks or {}).get("intervention")
+    if intervention:
+        columns.update({
+            "intervened": True,
+            "intervention_mode": intervention["mode"],
+            "intervention_vector": intervention["vector"],
+            "intervention_alpha": intervention["alpha"],
+            "intervention_layer": intervention["layer"],
+            "intervention_passes": intervention["passes"],
+            "intervention_steps": "{:g}-{:g}".format(*intervention["steps"]),
+        })
+    return columns
+
+
+def check_condition(records, condition):
+    """A resumed run must continue under the condition it started with, or it would mix two."""
+    for record in records:
+        changed = {key: (record[key], value) for key, value in condition.items()
+                   if record.get(key) is not None and str(record[key]) != str(value)}
+        if record.get("intervention_mode") and "intervention_mode" not in condition:
+            changed["intervention"] = (record["intervention_mode"], None)
+        if changed:
+            raise ValueError(f"this run folder was generated under another condition {changed} "
+                             "(before, now); give this condition its own --run-name")
+
+
 def run(cfg, run, source=None):
     """``source`` is a postprocess run folder, or any table with prompt_id and prompt."""
     settings = cfg["generate"]
     model = get_model(cfg)
     seed = stage_setting(cfg, NAME, "seed")
+    hooks = hook_settings(cfg, model)
+    condition = condition_columns(model, hooks)
+    make_backend = partial(build_image_backend, hooks=hooks) if hooks else build_image_backend
 
     prompts = select_rows(
         read_table(find_table(source, cfg["dedup"]["output_name"])),
@@ -102,8 +157,10 @@ def run(cfg, run, source=None):
     )
 
     records_file = run.path("generations.jsonl")
+    previous = read_jsonl(records_file)
+    check_condition(previous, condition)
     done = set() if cfg["run"]["overwrite"] else {
-        r["prompt_id"] for r in read_jsonl(records_file) if r.get("generation_status", "success") == "success"
+        r["prompt_id"] for r in previous if r.get("generation_status", "success") == "success"
     }
     # Stage 2 carries an explicit seed per row. Stage 1 keeps the historical
     # position-based seed behavior, which remains stable across resumed runs.
@@ -148,7 +205,7 @@ def run(cfg, run, source=None):
         """Save a finished batch, append its records and tick the bar; returns the images written."""
         rows = {str(row["prompt_id"]): row for _, row in batch}
         for image in images:
-            record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run)
+            record = save_record(image, rows[image["prompt_id"]], model["id"], settings, run, condition)
             # Copies share one manifest; serialise append+flush so each
             # completed image remains a complete JSONL record on resume.
             with records_lock:
@@ -172,6 +229,7 @@ def run(cfg, run, source=None):
             }
             for column in PROMPT_COLUMNS:
                 record[column] = clean(row.get(column))
+            record.update(condition)
             with records_lock:
                 append_jsonl(records_file, record)
         progress.advance(len(requests), failed=len(requests))
@@ -179,7 +237,7 @@ def run(cfg, run, source=None):
 
     def generate_batches(assigned_batches):
         """Run an assigned sequence of batches through one private model instance (a thread)."""
-        backend = build_image_backend(model, cfg["paths"]["models"])
+        backend = make_backend(model, cfg["paths"]["models"])
         completed, failures = 0, []
         try:
             try:
@@ -207,7 +265,7 @@ def run(cfg, run, source=None):
             worker_count,
             mp_context=multiprocessing.get_context("spawn"),
             initializer=_start_process_worker,
-            initargs=(model, cfg["paths"]["models"]),
+            initargs=(model, cfg["paths"]["models"], hooks),
         )
         with executor:
             try:
@@ -272,17 +330,18 @@ def make_request(row, seed, settings):
     }
 
 
-def save_record(image, row, model_id, settings, run):
-    """Save one image to disk and return its generation record."""
+def save_record(image, row, model_id, settings, run, condition=None):
+    """Save one image (and its captured activations) to disk and return its generation record."""
     extension = "jpg" if settings["save_format"] == "jpeg" else settings["save_format"]
-    if row.get("attack_config") is not None:
+    # A table mixing attack and ordinary prompts stores the missing attack_config as NaN, not None.
+    if pd.notna(row.get("attack_config")) and str(row["attack_config"]).strip():
         filename = Path(image_filename({
             **row, "prompt_id": image["prompt_id"], "evaluation_seed": image["seed"], "model_id": model_id,
-        }, extension)).stem
+        }, model_id, extension)).stem
     else:
         filename = settings["image_template"].format(prompt_id=image["prompt_id"], seed=image["seed"])
     path = run.path(settings["image_subdir"], f"{filename}.{extension}")
-    save_image(image["image"], path, settings["save_format"], settings["jpeg_quality"])
+    save_image(image["image"], path, settings["save_format"], settings["jpeg_quality"], settings["png_compress_level"])
     record = {
         "prompt_id": image["prompt_id"],
         "prompt": str(row["prompt"]),
@@ -294,12 +353,23 @@ def save_record(image, row, model_id, settings, run):
         "height": image["height"],
         "num_inference_steps": image["steps"],
         "guidance_scale": image["guidance_scale"],
+        "batch_size": image.get("batch_size", 1),
         "run_id": run.id,
         "generation_status": "success",
         "error": None,
     }
     for column in PROMPT_COLUMNS:
         record[column] = clean(row.get(column))
+    record.update(condition or {})
+    if "activations" in image:
+        target = run.path(settings["capture"]["subdir"], f"{filename}.npz")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(target, **{f"{layer}/{kind}": values[kind]
+                            for layer, values in image["activations"].items() for kind in ("mean", "steps")})
+        record["activation_path"] = str(target)
+    if "intervention" in image:
+        record["intervention_edited_calls"] = image["intervention"]["edited_calls"]
+        record["intervention_relative_change"] = round(image["intervention"]["relative_change"], 6)
     return record
 
 
