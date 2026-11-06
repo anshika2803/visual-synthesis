@@ -55,6 +55,21 @@ def test_ties_go_to_the_earliest_layer():
     assert representation.choose_layer(table, tie=0.001) == "b"
 
 
+def test_e4_step_analysis_accepts_fp32_captures_above_fp16_range(tmp_path):
+    frame = capture_run(tmp_path, n=10, steps=2)
+    for path in frame["activation_path"]:
+        with np.load(path) as saved:
+            arrays = {name: saved[name].astype(np.float32) * 100000 for name in saved.files}
+        np.savez(path, **arrays)
+    assert max(abs(v).max() for v in arrays.values()) > np.finfo(np.float16).max
+    table, directions, _, steps, statistics = representation.analyze(frame, LAYERS)
+    assert statistics["layer"] in LAYERS
+    assert len(steps) == len(LAYERS) * 2
+    assert np.isfinite(table["cv_auc"]).all()
+    assert np.isfinite(steps["validation_auc"]).all()
+    assert all(np.isfinite(values).all() for values in directions.values())
+
+
 def test_the_command_writes_the_artifacts_that_generate_reads(tmp_path):
     (tmp_path / "run").mkdir()
     capture_run(tmp_path / "run", n=15)

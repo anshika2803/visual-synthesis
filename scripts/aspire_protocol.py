@@ -26,6 +26,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 BASE_COMMIT = "16671d1da7b927e01c72176ddaebac4bef41e956"
+# Audited numerical-storage fixes are identified by exact file bytes. Keep the
+# TC2 source comparison visible; unrelated scientific edits still fail closed.
+APPROVED_SOURCE_FIXES = {
+    "activations.py": {
+        "sha256": "88beb8472a872362c8f6e125c5755540ef80c44f7572cbacc209d167fa238770",
+        "description": (
+            "FP32 pooled-step storage and finite-value checks; model precision and intervention rules unchanged"
+        ),
+    },
+}
 GIB = 1024**3
 PHASES = ("check", "ready", "all", "e1", "e7", "e4", "e5", "e6", "report")
 CONFIG_NAMES = ("pipeline.json", "pipeline.hpc.json", "e1e6.json", "e1e6.aspire.json")
@@ -308,7 +318,7 @@ def setup_report(paths, quiet=False):
     # An ancestry check alone cannot establish that the experiment implementation
     # equals the frozen protocol. Compare the actual scientific source bytes too.
     git = os.environ.get("VS_ASPIRE_GIT", "git")
-    code = {}
+    code, applied_fixes = {}, {}
     for relative in (
         "config.py",
         "io.py",
@@ -325,15 +335,21 @@ def setup_report(paths, quiet=False):
         "hook_validation.py",
     ):
         name = "src/visual_synthesis/" + relative
+        digest = None
         try:
             frozen = subprocess.check_output(
                 [git, "-C", str(ROOT), "show", f"{BASE_COMMIT}:{name}"], stderr=subprocess.DEVNULL
             )
-            code[relative] = sha(ROOT / name) == hashlib.sha256(frozen).hexdigest()
+            digest = sha(ROOT / name)
+            code[relative] = digest == hashlib.sha256(frozen).hexdigest()
         except (OSError, subprocess.SubprocessError):
             code[relative] = False
         if not code[relative]:
-            issues.append(f"Scientific source differs from {BASE_COMMIT[:7]}: {relative}")
+            fix = APPROVED_SOURCE_FIXES.get(relative)
+            if fix and digest == fix["sha256"]:
+                applied_fixes[relative] = fix
+            else:
+                issues.append(f"Scientific source differs from {BASE_COMMIT[:7]}: {relative}")
     matches = all(packages[p]["match"] for p in TC2_REQUIRED)
     runtime_matches = all(row["match"] for row in packages.values())
     report = {
@@ -348,6 +364,7 @@ def setup_report(paths, quiet=False):
         "inputs": inputs,
         "scientific_settings": science,
         "source_matches": code,
+        "approved_source_fixes": applied_fixes,
         "execution_differences": execution,
         "detectors": detector_settings,
         "checkpoint_revision_comparison": checkpoint,
@@ -367,6 +384,8 @@ def setup_report(paths, quiet=False):
                 print(f"  {name}: TC2={row['tc2']}  here={row['here']}  DIFF")
         for issue in issues:
             print(f"  FIX: {issue}")
+        for name, fix in applied_fixes.items():
+            print(f"Approved source fix: {name}: {fix['description']}")
         print(f"Execution differences: {json.dumps(execution)}")
         print(f"Checkpoint revisions: {checkpoint}")
         print(f"Report: {paths['work'] / 'setup-check.json'}")

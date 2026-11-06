@@ -74,6 +74,16 @@ The readiness record freezes the actual Python/package versions and source
 hashes; changing them later stops resumption. ASPIRE/BF16 and the environment
 are recorded execution deviations from the TC2 setup.
 
+Pooled activation steps are stored in FP32: BF16 activations can exceed FP16's
+finite range, corrupting E4's per-step analysis when saved in FP16. Capture now
+rejects non-finite values during readiness. This storage fix keeps model BF16
+precision, the FP32 pooled means, hook locations and intervention rules intact.
+The setup report records it under `approved_source_fixes`, while `source_matches`
+still shows the difference from the original TC2 source. Only the exact audited
+file hash is accepted; other scientific source changes fail the check. Apply
+the fix before a fresh readiness run; existing overflowed captures must be
+regenerated, since casting them back to FP32 cannot recover their values.
+
 Paste these in each new cluster login. The 500 GiB value is the earlier planning
 cap for the entire runtime workspace, not extra storage requested for this run;
 check current usage/quota before selecting it.

@@ -114,6 +114,12 @@ E2 compares L1, L3, L4 and L6 only (no L2 candidates, §1.3). D2–D7, D9 and D1
 - E7 translations are machine output with a spot check (A3); Swahili is checked by back-translation only.
 - SDXL served as the development model for the E4 layer rule (A4).
 - One seed per prompt; CIs reflect prompt sampling only. Slow models run the reduced tier.
+- **Numerical storage correction, 2026-11-06:** Qwen ASPIRE hook validation
+  (job `26131317.pbs101`) overflowed when pooled BF16-model activations were saved
+  as FP16. New per-step captures use FP32 and reject non-finite values; model
+  precision, pooled means, layer choice and interventions are unchanged. Repeat
+  readiness after updating, and regenerate any captures containing NaN or infinity.
+  Record the storage precision when comparing older FP16 timestep ablations.
 
 ### 0.7 Ethics and data handling
 
@@ -425,8 +431,8 @@ one split.
 2. Per prompt and layer, store the mean-pooled vector of the selected stream:
    - mean over tokens or spatial positions;
    - conditional pass only;
-   - mean over all denoising steps, plus the per-step stack in fp16 for optional
-     timestep analysis.
+   - mean over all denoising steps, plus the per-step stack in FP32 for optional
+     timestep analysis (2026-11-06 storage correction, §0.6).
 3. Run the analysis (CPU) on the **discovery** split only:
    - logistic regression (standardized features, L2, C = 1.0);
    - stratified 5-fold CV ROC-AUC and accuracy per layer (mean ± sd);

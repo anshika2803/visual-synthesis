@@ -442,6 +442,19 @@ def test_setup_reports_protocol_match_and_expected_execution_differences(paths, 
     assert report["detectors"]["clip-h14"]["threshold"] == 0.55
     assert report["checkpoint_revision_comparison"].startswith("unverified")
     assert not report["gpu_fit_checked"]
+    assert not report["source_matches"]["activations.py"]
+    assert report["approved_source_fixes"]["activations.py"] == ap.APPROVED_SOURCE_FIXES["activations.py"]
+
+
+def test_setup_rejects_changes_beyond_the_approved_capture_fix(paths, monkeypatch):
+    tc2_package_mock(monkeypatch)
+    original_sha = ap.sha
+    target = ap.ROOT / "src/visual_synthesis/activations.py"
+    monkeypatch.setattr(ap, "sha", lambda path: "0" * 64 if Path(path) == target else original_sha(path))
+    report = ap.setup_report(paths, quiet=True)
+    assert not report["protocol_ok"]
+    assert "activations.py" not in report["approved_source_fixes"]
+    assert "Scientific source differs from 16671d1: activations.py" in report["issues"]
 
 
 def test_setup_distinguishes_version_difference_from_missing_dependency(paths, monkeypatch):

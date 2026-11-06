@@ -229,13 +229,25 @@ class ActivationHooks:
         settings, edited = self.intervention, self.stats["edited"]
         if settings and settings["alpha"] and not edited:
             raise RuntimeError(f"the intervention never edited {settings['layer']}; check the layer and hook.cfg")
-        capture = {}
+        capture, uncond = {}, {}
         for layer, buffer in self.buffers.items():
-            steps = np.stack(buffer["cond"])
-            capture[layer] = {"steps": steps.astype(np.float16), "mean": steps.mean(axis=0).astype(np.float32)}
+            # BF16 model activations can exceed FP16's finite range. Preserve
+            # the FP32 pooled vectors used to compute the mean and step AUCs.
+            steps = np.stack(buffer["cond"]).astype(np.float32, copy=False)
+            if not np.isfinite(steps).all():
+                raise RuntimeError(f"{layer}: non-finite conditional capture")
+            mean = steps.mean(axis=0).astype(np.float32)
+            if not np.isfinite(mean).all():
+                raise RuntimeError(f"{layer}: non-finite mean capture")
+            capture[layer] = {"steps": steps, "mean": mean}
+            if buffer["uncond"]:
+                values = np.stack(buffer["uncond"]).astype(np.float32, copy=False)
+                if not np.isfinite(values).all():
+                    raise RuntimeError(f"{layer}: non-finite unconditional capture")
+                uncond[layer] = values
         return {
             "capture": capture,
-            "uncond": {layer: np.stack(b["uncond"]) for layer, b in self.buffers.items() if b["uncond"]},
+            "uncond": uncond,
             "stats": {"steps": self.step + 1, "edited_calls": edited,
                       "relative_change": self.stats["change"] / edited if edited else 0.0},
             "outputs": dict(self.outputs),

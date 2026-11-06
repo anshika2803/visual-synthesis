@@ -3,7 +3,45 @@ import json
 import numpy as np
 import pytest
 
-from visual_synthesis.activations import ablate, load_intervention, steer
+from visual_synthesis.activations import ActivationHooks, ablate, load_intervention, steer
+
+
+def captured_hooks(conditional, unconditional=()):
+    # Exercise capture finalization without a model or GPU forward pass.
+    hooks = ActivationHooks.__new__(ActivationHooks)
+    hooks.buffers = {"layer": {"cond": list(conditional), "uncond": list(unconditional)}}
+    hooks.intervention = None
+    hooks.stats = {"edited": 0, "change": 0.0}
+    hooks.step = len(conditional) - 1
+    hooks.outputs = {}
+    return hooks
+
+
+def test_large_captures_round_trip_without_fp16_overflow(tmp_path):
+    vectors = np.array([[65536, -100000, 1.25], [131072, -200000, 2.5]], dtype=np.float32)
+    hooks = captured_hooks(vectors, vectors / 2)
+    with np.errstate(over="raise", invalid="raise"):
+        result = hooks.end()
+    capture = result["capture"]["layer"]
+    assert capture["steps"].dtype == np.float32
+    np.testing.assert_array_equal(capture["steps"], vectors)
+    np.testing.assert_array_equal(capture["mean"], vectors.mean(axis=0))
+    np.testing.assert_array_equal(result["uncond"]["layer"], vectors / 2)
+    path = tmp_path / "activation.npz"
+    np.savez(path, **{f"layer/{kind}": values for kind, values in capture.items()})
+    with np.load(path) as saved:
+        assert np.isfinite(saved["layer/steps"]).all()
+        np.testing.assert_array_equal(saved["layer/steps"], vectors)
+
+
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+@pytest.mark.parametrize("kind", ["conditional", "unconditional"])
+def test_non_finite_captures_fail_validation(value, kind):
+    good = np.array([[1, 2, 3]], dtype=np.float32)
+    bad = np.array([[1, value, 3]], dtype=np.float32)
+    hooks = captured_hooks(bad if kind == "conditional" else good, bad if kind == "unconditional" else ())
+    with pytest.raises(RuntimeError, match=f"non-finite {kind} capture"):
+        hooks.end()
 
 
 def test_ablation_sets_the_projection_to_the_benign_mean_and_keeps_the_rest():
