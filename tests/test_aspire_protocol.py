@@ -1,5 +1,6 @@
 """Scheduling, native-precision isolation and fail-closed validation without a GPU."""
 
+import builtins
 import importlib.util
 import json
 import signal
@@ -143,6 +144,76 @@ def test_download_selection_avoids_duplicate_weights():
     ]
     files = ap.select_snapshot_files([SimpleNamespace(rfilename=n, size=1) for n in names], ["*"])
     assert set(files) == {"model_index.json", "transformer/model.safetensors", "tokenizer/vocab.json"}
+
+
+@pytest.mark.parametrize("has_safetensors", [False, True])
+def test_prepare_downloads_clip_weights_and_stays_online(paths, monkeypatch, has_safetensors):
+    generator = paths["models"] / "qwen-image"
+    ap.save(generator / "model_index.json", {"transformer": ["diffusers", "Model"]})
+    ap.save(generator / "transformer/config.json", {})
+    (generator / "transformer/model.safetensors").write_bytes(b"weights")
+    detector = paths["models"] / "clip-h14"
+    for name in ("config.json", "preprocessor_config.json"):
+        ap.save(detector / name, {})
+    for name in ("model.safetensors", "h14_nsfw.pth"):
+        (detector / name).write_bytes(b"weights")
+    packaged = paths["work"] / "nudenet"
+    packaged.mkdir()
+    (packaged / "model.onnx").write_bytes(b"weights")
+    monkeypatch.setitem(sys.modules, "nudenet", SimpleNamespace(__file__=str(packaged / "__init__.py")))
+    cuda = SimpleNamespace(
+        is_available=lambda: True,
+        is_bf16_supported=lambda: True,
+        get_device_name=lambda: "test GPU",
+        get_device_properties=lambda _: SimpleNamespace(total_memory=40 * ap.GIB),
+    )
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(cuda=cuda, version=SimpleNamespace(cuda="test")))
+    monkeypatch.setattr(ap, "disk_guard", lambda *args: {})
+    monkeypatch.setattr(ap.subprocess, "check_output", lambda *args, **kwargs: "test driver\n")
+    names = [
+        "config.json", "preprocessor_config.json", "vocab.json", "merges.txt",
+        "tokenizer_config.json", "special_tokens_map.json", "tokenizer.json", "pytorch_model.bin",
+    ]
+    if has_safetensors:
+        names.append("model.safetensors")
+    downloaded = []
+
+    class Hub:
+        def model_info(self, repo, files_metadata):
+            assert ap.os.environ["HF_HUB_OFFLINE"] == "0"
+            assert ap.os.environ["TRANSFORMERS_OFFLINE"] == "0"
+            return SimpleNamespace(sha="test-revision", siblings=[SimpleNamespace(rfilename=n, size=1) for n in names])
+
+    def download(repo, revision, local_dir, allow_patterns):
+        assert revision == "test-revision"
+        downloaded.append((repo, set(allow_patterns)))
+        for name in allow_patterns:
+            if name.endswith(".json"):
+                ap.save(local_dir / name, {})
+            else:
+                (local_dir / name).write_bytes(b"weights or tokenizer")
+
+    monkeypatch.setitem(sys.modules, "huggingface_hub", SimpleNamespace(HfApi=Hub, snapshot_download=download))
+    original_import = builtins.__import__
+
+    def checked_import(name, *args, **kwargs):
+        if name == "huggingface_hub":
+            assert ap.os.environ["HF_HUB_OFFLINE"] == "0"
+            assert ap.os.environ["TRANSFORMERS_OFFLINE"] == "0"
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", checked_import)
+    ap.prepare_resources(paths, 500, allow_download=True)
+    assert [repo for repo, _ in downloaded] == ["openai/clip-vit-base-patch32", "openai/clip-vit-base-patch16"]
+    expected_weight = "model.safetensors" if has_safetensors else "pytorch_model.bin"
+    for _, selected in downloaded:
+        assert expected_weight in selected
+        assert len(selected & {"model.safetensors", "pytorch_model.bin"}) == 1
+    assert all(p["reused"] is False for p in ap.read(paths["work"] / "resources.json")["plans"][-2:])
+    # Production is a separate child configured offline, including after a
+    # readiness job downloaded multiple previously missing evaluators.
+    ap.configure(paths)
+    assert ap.os.environ["HF_HUB_OFFLINE"] == ap.os.environ["TRANSFORMERS_OFFLINE"] == "1"
 
 
 def test_step_resumes_and_revalidates(paths):

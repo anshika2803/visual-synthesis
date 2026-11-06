@@ -481,6 +481,10 @@ def snapshot_complete(destination, generator=False):
 
 
 def prepare_resources(paths, budget, allow_download):
+    # Hub settings are read at import time. This preparation child alone may
+    # download; its parent and subsequent production children remain offline.
+    offline = "0" if allow_download else "1"
+    os.environ.update(HF_HUB_OFFLINE=offline, TRANSFORMERS_OFFLINE=offline)
     import torch
 
     from visual_synthesis.config import get_model, load_config, validate
@@ -511,7 +515,7 @@ def prepare_resources(paths, budget, allow_download):
             (
                 f"openai/clip-vit-base-patch{size}",
                 paths["models"] / f"openai--clip-vit-base-patch{size}",
-                ["*.json", "*.txt", "model.safetensors"],
+                ["*.json", "*.txt", "model.safetensors", "pytorch_model.bin"],
                 False,
             )
             for size in (32, 16)
@@ -527,8 +531,6 @@ def prepare_resources(paths, budget, allow_download):
                 raise FileNotFoundError(f"Incomplete cache: {destination}; run ready with VS_PROTOCOL_ALLOW_DOWNLOAD=1")
             from huggingface_hub import HfApi, snapshot_download
 
-            os.environ.pop("HF_HUB_OFFLINE", None)
-            os.environ.pop("TRANSFORMERS_OFFLINE", None)
             info = HfApi().model_info(repo, files_metadata=True)
             files = select_snapshot_files(info.siblings, patterns)
             if not info.sha or not files or any(n is None for n in files.values()):
@@ -536,7 +538,6 @@ def prepare_resources(paths, budget, allow_download):
             disk_guard(paths["storage"], budget, sum(files.values()))
             snapshot_download(repo, revision=info.sha, local_dir=destination, allow_patterns=list(files))
             plan.update(revision=info.sha, selected_bytes=sum(files.values()))
-            os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
             if not snapshot_complete(destination, generator):
                 raise ValueError(f"Downloaded cache is incomplete: {destination}")
         plans.append(plan)
