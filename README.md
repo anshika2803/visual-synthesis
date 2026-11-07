@@ -47,9 +47,10 @@ project into it (`EXTRAS=dev` for the data stages only), and
 Rendered Slurm jobs activate that same environment themselves.
 
 For the frozen E1–E7 experiments on ASPIRE, use the
-[generic PBS protocol runner](docs/aspire_protocol.md). One `.pbs` file and a
-shared Python controller handle `--model qwen-image`, `--model pixart-sigma`, or
-another configured model, with setup comparisons and separate resumable workspaces.
+[generic PBS launcher](docs/aspire_protocol.md). Set `VS_PROTOCOL_MODEL` and submit
+`scripts/aspire_protocol.pbs`; it calls the existing pipeline and analysis scripts
+for readiness and E1–E7 in one allocation. The pipeline's incremental runs resume
+completed images; no separate controller or readiness-marker files are needed.
 
 ## The stages
 

@@ -80,11 +80,10 @@ def download_url(url, target_dir, sha256=None, force=False, timeout=600):
 def download_hf(repo_id, target_dir, repo_type="model", revision=None, allow_patterns=None, force=False):
     """Download a HuggingFace repo snapshot. Returns ``(status, path, detail)``."""
     target_dir = Path(target_dir)
-    if is_populated(target_dir) and not force:
-        return "skipped", target_dir, "already downloaded"
-
     from huggingface_hub import snapshot_download
 
+    # A tokenizer/config file does not make a checkpoint complete. Let the Hub
+    # reuse verified files and resume missing shards in a partially filled cache.
     log.info("downloading %s %s from HuggingFace", repo_type, repo_id)
     try:
         snapshot_download(

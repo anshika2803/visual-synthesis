@@ -2,31 +2,236 @@
 #PBS -N vs-protocol
 #PBS -q normal
 #PBS -l select=1:ngpus=1:ncpus=16:mem=110GB
-#PBS -l walltime=06:00:00
+#PBS -l walltime=72:00:00
 #PBS -j oe
-# Generic ASPIRE 2A job: set VS_PROTOCOL_MODEL and VS_PROTOCOL_PHASE before qsub.
-# The Python submit command supplies these values and handles logs/dependencies.
-set -euo pipefail
+#PBS -o logs/aspire/
+# Submit from the repo: mkdir -p logs/aspire
+# qsub -P PROJECT -v VS_PROTOCOL_MODEL=qwen-image scripts/aspire_protocol.pbs
+set -Eeuo pipefail
 ulimit -c 0
 : "${PBS_JOBID:?Submit this file with qsub}"
-export PATH="${PBS_O_PATH:-${PATH:-/usr/bin:/bin}}"
-export VS_ASPIRE_REPO=${VS_ASPIRE_REPO:-${PBS_O_WORKDIR:?Missing submission directory}}
-cd "$VS_ASPIRE_REPO"
-export VS_ASPIRE_PYTHON=${VS_ASPIRE_PYTHON:-$HOME/.conda/envs/visual-safety/bin/python}
-export VS_ASPIRE_GIT=${VS_ASPIRE_GIT:-${VS_ASPIRE_PYTHON%/*}/git}
-: "${VS_ASPIRE_PROJECT:?Set the NSCC project ID, also used for continuations}"
-: "${VS_ASPIRE_STORAGE:?Set the absolute scratch runtime directory}"
-: "${VS_ASPIRE_BUDGET_GIB:?Set the verified runtime budget in GiB}"
-: "${VS_PROTOCOL_MODEL:?Set the configured model ID}"
-export VS_PROTOCOL_PHASE=${VS_PROTOCOL_PHASE:-ready}
-export VS_PROTOCOL_TIER=${VS_PROTOCOL_TIER:-auto}
-export VS_PROTOCOL_WALL_SECONDS=${VS_PROTOCOL_WALL_SECONDS:-21600}
-export VS_PROTOCOL_JOB_INDEX=${VS_PROTOCOL_JOB_INDEX:-1}
-export VS_PROTOCOL_MAX_JOBS=${VS_PROTOCOL_MAX_JOBS:-12}
-export VS_PROTOCOL_ALLOW_DOWNLOAD=${VS_PROTOCOL_ALLOW_DOWNLOAD:-0}
-export PATH="${VS_ASPIRE_PYTHON%/*}:${VS_ASPIRE_GIT%/*}:$PATH"
-export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
-export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
-export OMP_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-16}}
-export MKL_NUM_THREADS=$OMP_NUM_THREADS TOKENIZERS_PARALLELISM=false
-exec "$VS_ASPIRE_PYTHON" -u scripts/aspire_protocol.py run
+export PATH="${PBS_O_PATH:-$PATH}"
+cd "${PBS_O_WORKDIR:?Submit from the repository root}"
+repo=$PWD
+model=${VS_PROTOCOL_MODEL:?Set VS_PROTOCOL_MODEL to a configured model ID}
+phase=${VS_PROTOCOL_PHASE:-all}
+[[ $model =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid model ID'; exit 2; }
+case "$phase" in all|ready|e1|e7|e4|e5|e6|report) ;; *) echo "Invalid phase: $phase"; exit 2 ;; esac
+case "$model" in sd-3.5-large|flux-dev|qwen-image|glm-image) tier=reduced ;; *) tier=full ;; esac
+expected_tier=$tier
+tier=${VS_PROTOCOL_TIER:-auto}
+[[ $tier != auto ]] || tier=$expected_tier
+case "$model" in
+  sd-1.5|sd-xl|sd-3.5-large|pixart-sigma|flux-dev|qwen-image|z-image-turbo|glm-image)
+    [[ $tier == "$expected_tier" ]] || { echo "Frozen tier for $model is $expected_tier"; exit 2; }
+    ;;
+esac
+case "$tier" in full) core=core_v1; e46=e46_v1 ;; reduced) core=core_v1_reduced; e46=e46_v1_reduced ;; *) exit 2 ;; esac
+py=${VS_ASPIRE_PYTHON:-$HOME/.conda/envs/visual-safety/bin/python}
+export PATH="${py%/*}:$PATH" PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
+export OMP_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-16}} MKL_NUM_THREADS=${NCPUS:-${PBS_NCPUS:-16}}
+export TOKENIZERS_PARALLELISM=false HF_HUB_DISABLE_XET=1
+storage=${VS_ASPIRE_STORAGE:-$repo/runtime}
+export HF_HOME="$storage/hf-home" HF_HUB_CACHE="$storage/hf-home/hub"
+export HF_XET_CACHE="$storage/hf-home/xet" XDG_CACHE_HOME="$storage/cache" TORCH_HOME="$storage/torch"
+export HF_TOKEN_PATH=${HF_TOKEN_PATH:-$HF_HOME/token}
+export VS_MODELS_DIR=${VS_ASPIRE_MODELS:-$storage/models}
+export VS_RUNS_DIR=${VS_ASPIRE_RUNS:-$repo/data/runs}
+export VS_LOGS_DIR="$repo/logs" VS_SEED=42 VS_LOG_LEVEL=info
+results="$repo/results"
+mkdir -p "$VS_MODELS_DIR" "$VS_RUNS_DIR" "$VS_LOGS_DIR/aspire" "$results"
+exec 9>"$VS_RUNS_DIR/.aspire-$model.lock"
+flock -n 9 || { echo "Another job is using $model in $VS_RUNS_DIR"; exit 1; }
+jobtmp=$(mktemp -d "${TMPDIR:-/tmp}/vs-aspire.XXXXXX")
+jobcfg="$jobtmp/config.json"
+current=configuration
+finish() {
+  code=$?
+  if (( code )); then echo "FAILED: step=$current exit=$code job=$PBS_JOBID"; fi
+  rm -rf -- "$jobtmp"
+}
+trap finish EXIT
+trap 'exit 143' TERM
+step() { current=$1; shift; printf '\nSTEP %s\n' "$current"; "$@"; }
+cfg=(-c config/pipeline.json -c config/pipeline.hpc.json -c config/e1e6.json -c "$jobcfg")
+vs() { "$py" -u -m visual_synthesis "$@" "${cfg[@]}" --mode incremental; }
+
+# The existing hook/report scripts accept config files. Keep this override in
+# node-local temporary storage, independent of old protocol workspaces.
+step configuration "$py" - "$model" "$jobcfg" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+from visual_synthesis.config import get_model, load_config
+model_id, output = sys.argv[1:]
+base = load_config(['config/pipeline.json', 'config/pipeline.hpc.json', 'config/e1e6.json'], use_env=False)
+get_model(base, model_id)  # reject an unknown model before allocating any weights
+models = Path(os.environ['VS_MODELS_DIR']).resolve()
+override = {
+    'run': {'mode': 'incremental', 'seed': 42},
+    'generate': {'model': model_id, 'workers': 1, 'batch_size': 1, 'stop_on_error': True},
+    'nsfw': {'workers': 1, 'max_error_rate': 0.0},
+    'paths': {'models': str(models), 'runs': os.environ['VS_RUNS_DIR'], 'logs': os.environ['VS_LOGS_DIR']},
+    'models': {model_id: {'device': 'cuda', 'device_map': None, 'enable_cpu_offload': True, 'quantization': None}},
+    'metric_models': {
+        'clip-vit-base-patch32': {'repo_id': str(models / 'openai--clip-vit-base-patch32')},
+        'clip-iqa-vit-base-patch16': {'repo_id': str(models / 'openai--clip-vit-base-patch16')},
+    },
+}
+Path(output).write_text(json.dumps(override, indent=2) + '\n')
+PY
+cp "$jobcfg" "$VS_LOGS_DIR/aspire/$PBS_JOBID.config.json"
+step preflight "$py" - "$model" "$core" "$e46" "$jobcfg" <<'PY'
+import hashlib
+import json
+import sys
+from importlib.metadata import version
+from pathlib import Path
+import torch
+from visual_synthesis.config import get_model, load_config
+model_id, core, e46, overlay = sys.argv[1:]
+for package in ('scikit-learn', 'scipy'):
+    print(f'{package}={version(package)}')  # E4 dependencies must be present before E1 starts.
+assert torch.cuda.is_available(), 'A CUDA GPU is required'
+cfg = load_config(['config/pipeline.json', 'config/pipeline.hpc.json', 'config/e1e6.json', overlay], use_env=False)
+model = get_model(cfg, model_id)
+assert model['hook']['layers'], 'Configure model hook layers before running E4'
+assert model['dtype'] != 'bfloat16' or torch.cuda.is_bf16_supported(), 'BF16 support is required'
+for name in (core, e46, 'e7_v1'):
+    path = Path('data/processed/e1e6') / name
+    audit = json.loads(path.with_suffix('.json').read_text())
+    assert hashlib.sha256(path.with_suffix('.parquet').read_bytes()).hexdigest() == audit['sha256'], f'Frozen input changed: {name}'
+print(f"model={model_id} dtype={model['dtype']} quantization={model['quantization']} cpu_offload=True")
+print(f"GPU: {torch.cuda.get_device_name()} / {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GiB")
+PY
+step versions "$py" -m pip freeze
+
+# Each Python command starts with the correct offline setting before importing
+# Hugging Face. The normal downloader reuses complete files and resumes partials.
+export HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0
+step download-model vs download --model "$model" --run-name "ready-$model-model"
+step download-detector vs download --detector clip-h14 --run-name "ready-$model-detector"
+step download-evaluators "$py" - "$VS_MODELS_DIR" "$VS_RUNS_DIR" "$model" <<'PY'
+import json
+import sys
+from pathlib import Path
+from visual_synthesis.config import load_dotenv
+load_dotenv()
+from huggingface_hub import HfApi, snapshot_download
+models, runs, model = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+for kind in ('model', 'detector'):
+    manifest = json.loads((runs / 's01_download' / f'ready-{model}-{kind}' / '_run_manifest.json').read_text())
+    assert manifest['status'] == 'success', f'{kind} download failed: {manifest.get("summary")}'
+for size in (32, 16):
+    repo = f'openai/clip-vit-base-patch{size}'
+    info = HfApi().model_info(repo)
+    weight = 'model.safetensors' if any(f.rfilename == 'model.safetensors' for f in info.siblings) else 'pytorch_model.bin'
+    snapshot_download(repo, revision=info.sha, local_dir=models / f'openai--clip-vit-base-patch{size}', allow_patterns=['*.json', '*.txt', weight])
+PY
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+
+verify_run() {
+  current="verify-$1"
+  "$py" - "$1" "$2" "$3" "$4" "$5" "$jobcfg" <<'PY'
+import json
+import sys
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from visual_synthesis.backends.image import precision
+from visual_synthesis.config import get_model, load_config
+run, table, limit, validation, capture, overlay = sys.argv[1:]
+cfg = load_config(['config/pipeline.json', 'config/pipeline.hpc.json', 'config/e1e6.json', overlay], use_env=False)
+model = get_model(cfg)
+root = Path(cfg['paths']['runs'])
+expected = pd.read_parquet(Path('data/processed/e1e6') / f'{table}.parquet')
+if validation == '1':
+    expected = expected[expected.subset_split.eq('validation')]
+if int(limit):
+    expected = expected.head(int(limit))
+ids = set(expected.prompt_id.astype(str))
+def records(path):
+    return {str(row['prompt_id']): row for row in map(json.loads, path.read_text().splitlines())}
+generated = records(root / 's05_generate' / run / 'generations.jsonl')
+assert set(generated) == ids, f'{run}: incomplete generation coverage'
+for row in generated.values():
+    assert row['generation_status'] == 'success' and Path(row['image_path']).is_file(), f'{run}: missing image'
+    assert float(row['seed']) == 42 and row['model'] == model['id'] and row['precision'] == precision(model), f'{run}: model/seed/precision changed'
+    assert all(row[key] == model[key] for key in ('width', 'height', 'num_inference_steps')), f'{run}: generation settings changed'
+    if capture == '1':
+        with np.load(row['activation_path']) as arrays:
+            assert all(np.isfinite(arrays[key]).all() for key in arrays.files), f'{run}: non-finite capture; regenerate it'
+for detector in ('nudenet', 'laion'):
+    found = records(root / 's06_nsfw' / f'{run}-{detector}' / 'detections.jsonl')
+    assert set(found) == ids and all(r['status'] == 'success' and r['flagged'] is not None for r in found.values()), f'{run}: incomplete detector verdicts'
+metrics = pd.read_parquet(root / 's07_metrics' / run / 'image_metrics.parquet')
+assert not metrics.prompt_id.duplicated().any() and set(metrics.prompt_id.astype(str)) == ids, f'{run}: incomplete metrics'
+assert metrics[['flagged', 'flagged_nudenet', 'flagged_clip-h14', 'clip_score', 'quality_score']].notna().all().all(), f'{run}: missing scores'
+assert np.isfinite(metrics[['clip_score', 'quality_score']].to_numpy(float)).all(), f'{run}: non-finite scores'
+assert pd.to_numeric(metrics.seed, errors='coerce').eq(42).all() and metrics.model.eq(model['id']).all() and metrics.precision.eq(precision(model)).all(), f'{run}: metrics model/seed/precision changed'
+print(f'PASS {run}: {len(ids)} images, both detectors and quality/alignment scores')
+PY
+}
+evaluate() {
+  local run=$1
+  step "$run-nudenet" vs nsfw --detector nudenet --input "$VS_RUNS_DIR/s05_generate/$run" --run-name "$run-nudenet"
+  step "$run-laion" vs nsfw --detector clip-h14 --input "$VS_RUNS_DIR/s05_generate/$run" --run-name "$run-laion"
+  step "$run-metrics" vs metrics --input "$VS_RUNS_DIR/s06_nsfw/$run-nudenet" --run-name "$run" \
+    --set "metrics.generations_input=$VS_RUNS_DIR/s05_generate/$run" \
+    --set "metrics.secondary_detections=$VS_RUNS_DIR/s06_nsfw/$run-laion"
+}
+generate() {
+  local run=$1 table=$2 limit=$3 validation=$4 capture=$5; shift 5
+  local args=(--model "$model" --input "data/processed/e1e6/$table.parquet" --run-name "$run")
+  (( limit == 0 )) || args+=(--limit "$limit")
+  [[ $validation == 0 ]] || args+=(--set 'stages.generate.filters={"subset_split":"validation"}')
+  [[ $capture == 0 ]] || args+=(--set generate.capture.enabled=true)
+  step "$run-generate" vs generate "${args[@]}" "$@"
+  evaluate "$run"
+  verify_run "$run" "$table" "$limit" "$validation" "$capture"
+}
+report() {
+  step report "$py" -u scripts/e1e6_report.py tables --model "$model" --runs "$VS_RUNS_DIR" \
+    --output "$results/e1e6" --exclude results/review/excluded_prompts.csv "${cfg[@]}"
+}
+
+# No readiness marker: real checks run in this allocation before production.
+step hooks "$py" -u scripts/validate_hooks.py "${cfg[@]}" --model "$model" --steps 2 --output "$results/hook_validation"
+generate "pilot-fit-$model" "$core" 2 0 0
+[[ $phase != ready ]] || { echo 'COMPLETE readiness'; exit 0; }
+for part in e1 e7 e4 e5 e6 report; do
+  [[ $phase == all || $phase == "$part" ]] || continue
+  case "$part" in
+    e1) generate "e1-$model" "$core" 0 0 0 ;;
+    e7) generate "e7-$model" e7_v1 0 0 0 ;;
+    e4)
+      generate "e4-$model-capture" "$e46" 0 0 1
+      step e4-analysis "$py" -u scripts/e4_analyze.py --capture-run "$VS_RUNS_DIR/s05_generate/e4-$model-capture" --output "$results/e4/$model"
+      ;;
+    e5|e6)
+      modes=(ablation steering); alphas=(0.5 1.0)
+      if [[ $part == e6 ]]; then
+        report
+        mode=$("$py" - "$results/e1e6/$model/e5.csv" "$model" <<'PY'
+import sys
+import pandas as pd
+from visual_synthesis.e1e6_report import e6_mode
+modes = e6_mode(pd.read_csv(sys.argv[1]))
+assert sys.argv[2] in modes, 'Complete E5 before E6'
+print(modes[sys.argv[2]])
+PY
+)
+        modes=("$mode"); alphas=(0.25 0.75)
+      fi
+      for mode in "${modes[@]}"; do for vector in safety random:0; do for alpha in "${alphas[@]}"; do
+        generate "$part-$model-$mode-${vector/:/}-a$alpha" "$e46" 0 1 0 \
+          --set generate.intervention.enabled=true --set "generate.intervention.e4_dir=$results/e4/$model" \
+          --set "generate.intervention.mode=$mode" --set "generate.intervention.vector=$vector" --set "generate.intervention.alpha=$alpha"
+      done; done; done
+      ;;
+    report) report ;;
+  esac
+done
+echo "COMPLETE $model phase=$phase runs=$VS_RUNS_DIR"
