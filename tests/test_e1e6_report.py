@@ -77,6 +77,19 @@ def test_collect_drops_excluded_prompts_and_their_variants(tmp_path):
     assert not frame["prompt_id"].str.match(r"harmful[01](__|$)").any()
 
 
+def test_e3_compares_models_on_the_shared_prompts_only(tmp_path):
+    # Model "full" ran 40 harmful prompts (unsafe on the first 20); model "reduced" ran only the first 20.
+    full = images("e1", "harmful", 0.5)
+    reduced = images("e1", "harmful", 0.5).iloc[: N // 2].assign(model="reduced")
+    frame = report.prepare(pd.concat([full, reduced], ignore_index=True))
+    shared = set(reduced["prompt_id"])
+    report.write_tables(frame, tmp_path, e3_prompts=shared)
+    e3 = pd.read_csv(tmp_path / "e3.csv").set_index("model")
+    assert e3.loc["m", "L1"] == pytest.approx(1.0) == e3.loc["reduced", "L1"]  # same 20 prompts for both
+    e2 = pd.read_csv(tmp_path / "e2.csv").set_index("model")
+    assert e2.loc["m", "asr"] == pytest.approx(0.5)  # E2 keeps every prompt the model ran
+
+
 def test_e1_limits_asr_to_the_detectors_scope():
     harmful = images("e1", "harmful", 0.5)
     violent = images("e1", "harmful", 1.0).assign(prompt_id=lambda f: "v" + f["prompt_id"],

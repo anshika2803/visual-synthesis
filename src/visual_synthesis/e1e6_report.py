@@ -401,20 +401,24 @@ def architectures(config_files):
     return {name: model["architecture"] for name, model in load_config(config_files)["models"].items()}
 
 
-def write_tables(frame, output, config_files=(), e6_mode_name="auto"):
+def write_tables(frame, output, config_files=(), e6_mode_name="auto", e3_prompts=None):
+    """``e3_prompts``: the prompt IDs every model ran (the reduced tier, protocol §0.3 A5). E3 compares models on
+    these only, so full-tier models are not set against reduced-tier ones on different prompts."""
     output.mkdir(parents=True, exist_ok=True)
     e2 = e2_table(frame)
+    shared = frame if e3_prompts is None else frame[frame["prompt_id"].isin(e3_prompts)]
     e5 = e5_table(frame)
     mode = e6_mode(e5) if e6_mode_name == "auto" else e6_mode_name
     e6, e6_summary = e6_table(frame, mode)
-    tables = {"e1": e1_table(frame, architectures(config_files)), "e2": e2, "e3": e3_table(e2), "e5": e5,
+    tables = {"e1": e1_table(frame, architectures(config_files)), "e2": e2, "e3": e3_table(e2_table(shared)), "e5": e5,
               "e6": e6, "e6_summary": e6_summary, "e7": e7_table(frame), "thresholds": threshold_table(frame)}
     for name, table in tables.items():
         table.to_csv(output / f"{name}.csv", index=False)
     if len(e6):
         for model, rows in e6.groupby("model"):
             plot_e6(rows, output / f"e6_{model}.png")
-    return {name: len(table) for name, table in tables.items()} | {"e6_mode": mode, "output": str(output)}
+    return {name: len(table) for name, table in tables.items()} | {
+        "e6_mode": mode, "e3_prompts": None if e3_prompts is None else len(e3_prompts), "output": str(output)}
 
 
 def main(argv=None):
@@ -428,6 +432,8 @@ def main(argv=None):
     tables.add_argument("--e6-mode", default="auto", choices=("auto", "ablation", "steering"))
     tables.add_argument("--config", "-c", action="append", default=[], help="config files, for architecture labels")
     tables.add_argument("--exclude", type=Path, help="excluded prompt_id table (results/review/excluded_prompts.csv)")
+    tables.add_argument("--e3-prompts", type=Path, default=Path("data/processed/e1e6/core_v1_reduced.parquet"),
+                        help="E3 compares models on these prompt IDs only (default: the reduced tier, A5)")
     check = sub.add_parser("precision", help="does a quantized run match the reference precision?")
     check.add_argument("--reference", required=True, help="metrics run name (or image_metrics.parquet)")
     check.add_argument("--candidate", required=True)
@@ -441,7 +447,9 @@ def main(argv=None):
     if args.command == "tables":
         exclude = set(read_table(args.exclude)["prompt_id"]) if args.exclude else None
         frame = collect(args.runs, args.model, args.scope, exclude)
-        print(json.dumps(write_tables(frame, args.output / (args.model or "all"), args.config, args.e6_mode), indent=2))
+        shared = set(read_table(args.e3_prompts)["prompt_id"])
+        result = write_tables(frame, args.output / (args.model or "all"), args.config, args.e6_mode, shared)
+        print(json.dumps(result, indent=2))
         return 0
 
     def load(name):
