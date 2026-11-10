@@ -1,0 +1,2 @@
+model,mode,best_alpha,asr_drop,benign_suppression,status
+glm-image,steering,0.25,-0.0,0.06451612903225806,ok
