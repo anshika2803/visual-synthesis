@@ -1,0 +1,158 @@
+{
+  "checks": [
+    {
+      "check": "deterministic",
+      "detail": "mean |pixel diff| of two identical runs = 0.0000",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.0: conditional pass on every step",
+      "detail": "2 of 2 steps",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.0: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.0: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.9: conditional pass on every step",
+      "detail": "2 of 2 steps",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.9: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.9: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: conditional pass on every step",
+      "detail": "2 of 2 steps",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.28: conditional pass on every step",
+      "detail": "2 of 2 steps",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.28: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.28: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.37: conditional pass on every step",
+      "detail": "2 of 2 steps",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.37: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.37: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: steering alpha=0 leaves the image unchanged",
+      "detail": "mean |pixel diff| = 0.0000",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: steering alpha=1 edits the activations",
+      "detail": "2 calls, relative change 0.6420",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: steering alpha=1 changes the image",
+      "detail": "mean |pixel diff| = 91.6458",
+      "passed": true
+    },
+    {
+      "check": "transformer.transformer_blocks.19: ablation alpha=1 edits the activations",
+      "detail": "2 calls, relative change 0.0133",
+      "passed": true
+    },
+    {
+      "check": "removing the hooks restores the baseline",
+      "detail": "mean |pixel diff| = 0.0000",
+      "passed": true
+    }
+  ],
+  "hook": {
+    "cfg": "batch_uncond_first",
+    "joint": null,
+    "layers": [
+      "transformer.transformer_blocks.0",
+      "transformer.transformer_blocks.9",
+      "transformer.transformer_blocks.19",
+      "transformer.transformer_blocks.28",
+      "transformer.transformer_blocks.37"
+    ],
+    "output_index": 1,
+    "pixels_per_token": 16
+  },
+  "intervention_layer": "transformer.transformer_blocks.19",
+  "layers": {
+    "transformer.transformer_blocks.0": {
+      "cond_steps": 2,
+      "dim": 2432,
+      "output": "(Tensor(2, 333, 2432), Tensor(2, 4096, 2432))",
+      "uncond_steps": 2
+    },
+    "transformer.transformer_blocks.19": {
+      "cond_steps": 2,
+      "dim": 2432,
+      "output": "(Tensor(2, 333, 2432), Tensor(2, 4096, 2432))",
+      "uncond_steps": 2
+    },
+    "transformer.transformer_blocks.28": {
+      "cond_steps": 2,
+      "dim": 2432,
+      "output": "(Tensor(2, 333, 2432), Tensor(2, 4096, 2432))",
+      "uncond_steps": 2
+    },
+    "transformer.transformer_blocks.37": {
+      "cond_steps": 2,
+      "dim": 2432,
+      "output": "(NoneType, Tensor(2, 4096, 2432))",
+      "uncond_steps": 2
+    },
+    "transformer.transformer_blocks.9": {
+      "cond_steps": 2,
+      "dim": 2432,
+      "output": "(Tensor(2, 333, 2432), Tensor(2, 4096, 2432))",
+      "uncond_steps": 2
+    }
+  },
+  "model": "sd-3.5-large",
+  "passed": true,
+  "steps": 2
+}

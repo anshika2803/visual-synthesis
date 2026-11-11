@@ -1,0 +1,2 @@
+model,mode,best_alpha,asr_drop,benign_suppression,status
+z-image-turbo,ablation,0.25,0.0392156862745098,0.04918032786885246,ok

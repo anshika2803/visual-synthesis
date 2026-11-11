@@ -1,0 +1,158 @@
+{
+  "checks": [
+    {
+      "check": "deterministic",
+      "detail": "mean |pixel diff| of two identical runs = 0.0000",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.1.attentions.1: conditional pass on every step",
+      "detail": "3 of 3 steps",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.1.attentions.1: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.1.attentions.1: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.2.attentions.1: conditional pass on every step",
+      "detail": "3 of 3 steps",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.2.attentions.1: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "unet.down_blocks.2.attentions.1: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: conditional pass on every step",
+      "detail": "3 of 3 steps",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.1.attentions.2: conditional pass on every step",
+      "detail": "3 of 3 steps",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.1.attentions.2: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.1.attentions.2: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.2.attentions.2: conditional pass on every step",
+      "detail": "3 of 3 steps",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.2.attentions.2: prompts differ in the conditional pass",
+      "detail": "",
+      "passed": true
+    },
+    {
+      "check": "unet.up_blocks.2.attentions.2: unconditional pass at step 0 is prompt-independent",
+      "detail": "else hook.cfg is wrong",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: steering alpha=0 leaves the image unchanged",
+      "detail": "mean |pixel diff| = 0.0000",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: steering alpha=1 edits the activations",
+      "detail": "3 calls, relative change 0.6117",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: steering alpha=1 changes the image",
+      "detail": "mean |pixel diff| = 3.8215",
+      "passed": true
+    },
+    {
+      "check": "unet.mid_block.attentions.0: ablation alpha=1 edits the activations",
+      "detail": "3 calls, relative change 0.0279",
+      "passed": true
+    },
+    {
+      "check": "removing the hooks restores the baseline",
+      "detail": "mean |pixel diff| = 0.0000",
+      "passed": true
+    }
+  ],
+  "hook": {
+    "cfg": "batch_uncond_first",
+    "joint": null,
+    "layers": [
+      "unet.down_blocks.1.attentions.1",
+      "unet.down_blocks.2.attentions.1",
+      "unet.mid_block.attentions.0",
+      "unet.up_blocks.1.attentions.2",
+      "unet.up_blocks.2.attentions.2"
+    ],
+    "output_index": 0,
+    "pixels_per_token": null
+  },
+  "intervention_layer": "unet.mid_block.attentions.0",
+  "layers": {
+    "unet.down_blocks.1.attentions.1": {
+      "cond_steps": 3,
+      "dim": 640,
+      "output": "(Tensor(2, 640, 32, 32))",
+      "uncond_steps": 3
+    },
+    "unet.down_blocks.2.attentions.1": {
+      "cond_steps": 3,
+      "dim": 1280,
+      "output": "(Tensor(2, 1280, 16, 16))",
+      "uncond_steps": 3
+    },
+    "unet.mid_block.attentions.0": {
+      "cond_steps": 3,
+      "dim": 1280,
+      "output": "(Tensor(2, 1280, 8, 8))",
+      "uncond_steps": 3
+    },
+    "unet.up_blocks.1.attentions.2": {
+      "cond_steps": 3,
+      "dim": 1280,
+      "output": "(Tensor(2, 1280, 16, 16))",
+      "uncond_steps": 3
+    },
+    "unet.up_blocks.2.attentions.2": {
+      "cond_steps": 3,
+      "dim": 640,
+      "output": "(Tensor(2, 640, 32, 32))",
+      "uncond_steps": 3
+    }
+  },
+  "model": "sd-1.5",
+  "passed": true,
+  "steps": 2
+}

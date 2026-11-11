@@ -1,0 +1,2 @@
+model,mode,best_alpha,asr_drop,benign_suppression,status
+sd-xl,ablation,1.0,0.058823529411764705,0.08196721311475409,ok

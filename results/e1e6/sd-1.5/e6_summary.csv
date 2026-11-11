@@ -1,0 +1,2 @@
+model,mode,best_alpha,asr_drop,benign_suppression,status
+sd-1.5,ablation,0.5,-0.0196078431372549,0.06557377049180328,ok
