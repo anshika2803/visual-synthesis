@@ -1,0 +1,500 @@
+{
+  "root": "/scratch/users/ntu/swarangi/visual-synthesis",
+  "host": "asp2a-login-ntu02",
+  "runs": [
+    {
+      "run": "e1-pixart-sigma",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e1-pixart-sigma/images",
+      "images_exist": true,
+      "image_count": 874,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e1-pixart-sigma/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e7-pixart-sigma",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e7-pixart-sigma/images",
+      "images_exist": true,
+      "image_count": 282,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e7-pixart-sigma/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e4-pixart-sigma-capture",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-pixart-sigma-capture/images",
+      "images_exist": true,
+      "image_count": 392,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e4-pixart-sigma-capture/image_metrics.parquet",
+      "image_metrics_exist": true,
+      "captures_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-pixart-sigma-capture/activations",
+      "captures_exist": true,
+      "capture_count": 392
+    },
+    {
+      "run": "e5-pixart-sigma-ablation-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-ablation-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-ablation-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-ablation-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-ablation-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-ablation-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-ablation-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-ablation-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-ablation-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-ablation-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-ablation-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-ablation-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-steering-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-steering-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-steering-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-steering-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-steering-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-steering-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-steering-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-steering-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-steering-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-pixart-sigma-steering-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-pixart-sigma-steering-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-pixart-sigma-steering-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-pixart-sigma-ablation-safety-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-pixart-sigma-ablation-safety-a0.25/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-pixart-sigma-ablation-safety-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-pixart-sigma-ablation-safety-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-pixart-sigma-ablation-safety-a0.75/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-pixart-sigma-ablation-safety-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-pixart-sigma-ablation-random0-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-pixart-sigma-ablation-random0-a0.25/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-pixart-sigma-ablation-random0-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-pixart-sigma-ablation-random0-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-pixart-sigma-ablation-random0-a0.75/images",
+      "images_exist": true,
+      "image_count": 209,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-pixart-sigma-ablation-random0-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e1-flux-dev",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e1-flux-dev/images",
+      "images_exist": true,
+      "image_count": 438,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e1-flux-dev/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e7-flux-dev",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e7-flux-dev/images",
+      "images_exist": true,
+      "image_count": 282,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e7-flux-dev/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e4-flux-dev-capture",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-flux-dev-capture/images",
+      "images_exist": true,
+      "image_count": 198,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e4-flux-dev-capture/image_metrics.parquet",
+      "image_metrics_exist": true,
+      "captures_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-flux-dev-capture/activations",
+      "captures_exist": true,
+      "capture_count": 198
+    },
+    {
+      "run": "e5-flux-dev-ablation-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-ablation-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-ablation-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-ablation-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-ablation-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-ablation-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-ablation-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-ablation-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-ablation-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-ablation-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-ablation-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-ablation-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-steering-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-steering-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-steering-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-steering-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-steering-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-steering-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-steering-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-steering-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-steering-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-flux-dev-steering-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-flux-dev-steering-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-flux-dev-steering-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-flux-dev-ablation-safety-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-flux-dev-ablation-safety-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-flux-dev-ablation-safety-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-flux-dev-ablation-safety-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-flux-dev-ablation-safety-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-flux-dev-ablation-safety-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-flux-dev-ablation-random0-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-flux-dev-ablation-random0-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-flux-dev-ablation-random0-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-flux-dev-ablation-random0-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-flux-dev-ablation-random0-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-flux-dev-ablation-random0-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e1-qwen-image",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e1-qwen-image/images",
+      "images_exist": true,
+      "image_count": 438,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e1-qwen-image/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e7-qwen-image",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e7-qwen-image/images",
+      "images_exist": true,
+      "image_count": 282,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e7-qwen-image/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e4-qwen-image-capture",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-qwen-image-capture/images",
+      "images_exist": true,
+      "image_count": 198,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e4-qwen-image-capture/image_metrics.parquet",
+      "image_metrics_exist": true,
+      "captures_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-qwen-image-capture/activations",
+      "captures_exist": true,
+      "capture_count": 198
+    },
+    {
+      "run": "e5-qwen-image-ablation-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-ablation-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-ablation-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-ablation-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-ablation-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-ablation-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-ablation-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-ablation-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-ablation-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-ablation-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-ablation-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-ablation-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-steering-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-steering-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-steering-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-steering-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-steering-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-steering-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-steering-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-steering-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-steering-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-qwen-image-steering-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-qwen-image-steering-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-qwen-image-steering-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-qwen-image-steering-safety-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-qwen-image-steering-safety-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-qwen-image-steering-safety-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-qwen-image-steering-safety-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-qwen-image-steering-safety-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-qwen-image-steering-safety-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-qwen-image-steering-random0-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-qwen-image-steering-random0-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-qwen-image-steering-random0-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-qwen-image-steering-random0-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-qwen-image-steering-random0-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-qwen-image-steering-random0-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e1-glm-image",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e1-glm-image/images",
+      "images_exist": true,
+      "image_count": 438,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e1-glm-image/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e7-glm-image",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e7-glm-image/images",
+      "images_exist": true,
+      "image_count": 282,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e7-glm-image/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e4-glm-image-capture",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-glm-image-capture/images",
+      "images_exist": true,
+      "image_count": 198,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e4-glm-image-capture/image_metrics.parquet",
+      "image_metrics_exist": true,
+      "captures_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e4-glm-image-capture/activations",
+      "captures_exist": true,
+      "capture_count": 198
+    },
+    {
+      "run": "e5-glm-image-ablation-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-ablation-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-ablation-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-ablation-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-ablation-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-ablation-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-ablation-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-ablation-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-ablation-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-ablation-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-ablation-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-ablation-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-steering-safety-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-steering-safety-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-steering-safety-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-steering-safety-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-steering-safety-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-steering-safety-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-steering-random0-a0.5",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-steering-random0-a0.5/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-steering-random0-a0.5/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e5-glm-image-steering-random0-a1.0",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e5-glm-image-steering-random0-a1.0/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e5-glm-image-steering-random0-a1.0/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-glm-image-steering-safety-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-glm-image-steering-safety-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-glm-image-steering-safety-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-glm-image-steering-safety-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-glm-image-steering-safety-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-glm-image-steering-safety-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-glm-image-steering-random0-a0.25",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-glm-image-steering-random0-a0.25/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-glm-image-steering-random0-a0.25/image_metrics.parquet",
+      "image_metrics_exist": true
+    },
+    {
+      "run": "e6-glm-image-steering-random0-a0.75",
+      "images_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s05_generate/e6-glm-image-steering-random0-a0.75/images",
+      "images_exist": true,
+      "image_count": 106,
+      "image_metrics_path": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs/s07_metrics/e6-glm-image-steering-random0-a0.75/image_metrics.parquet",
+      "image_metrics_exist": true
+    }
+  ],
+  "logs": "/scratch/users/ntu/swarangi/visual-synthesis/logs/aspire",
+  "retain_until": "Jay confirms submission and retention is no longer needed"
+}

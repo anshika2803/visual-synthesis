@@ -1,0 +1,37 @@
+{
+  "run": {
+    "mode": "incremental",
+    "seed": 42
+  },
+  "generate": {
+    "model": "pixart-sigma",
+    "workers": 1,
+    "batch_size": 1,
+    "stop_on_error": true
+  },
+  "nsfw": {
+    "workers": 1,
+    "max_error_rate": 0.0
+  },
+  "paths": {
+    "models": "/scratch/users/ntu/swarangi/visual-synthesis/runtime/models",
+    "runs": "/scratch/users/ntu/swarangi/visual-synthesis/data/runs",
+    "logs": "/scratch/users/ntu/swarangi/visual-synthesis/logs"
+  },
+  "models": {
+    "pixart-sigma": {
+      "device": "cuda",
+      "device_map": null,
+      "enable_cpu_offload": true,
+      "quantization": null
+    }
+  },
+  "metric_models": {
+    "clip-vit-base-patch32": {
+      "repo_id": "/scratch/users/ntu/swarangi/visual-synthesis/runtime/models/openai--clip-vit-base-patch32"
+    },
+    "clip-iqa-vit-base-patch16": {
+      "repo_id": "/scratch/users/ntu/swarangi/visual-synthesis/runtime/models/openai--clip-vit-base-patch16"
+    }
+  }
+}

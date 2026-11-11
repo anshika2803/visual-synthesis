@@ -1,0 +1,51 @@
+{
+  "analysis_exclusions_sha256": "2d24b18e78f16dab1f711cc2716415b17c3b173a4633da6b25c524ea22d682f1",
+  "error": "e5-glm-image-ablation-safety-a1.0: metric intervention mismatch",
+  "execution": "one process per GPU; E1/E7/E4 overlap; E5 follows E4; E6 follows all E5",
+  "frozen_input_sha256": {
+    "core_v1_reduced": "558dcce8c2585ea0f1e2329681adac1a89b64c7693dcdeb40009c82199c3fe4d",
+    "e46_v1_reduced": "82fec053db40d63d4e4d2afc0dbf9047fa76acdcd204051b0999641cbc8ac370",
+    "e7_v1": "d0f0ce7b2c033eb27a0aa0224a7f571e468f00ae31d091717002a6be21ccd912"
+  },
+  "gpu_ids": [
+    "GPU-8ee1fe87-add3-5f25-0886-d4e1e0cbfd1e",
+    "GPU-b2528548-0d88-4d95-963c-405ca5de116f",
+    "GPU-41122c3b-243f-807c-83ff-47e1d32fe1cb",
+    "GPU-341a8e37-e6cb-3050-a1d8-d26963c49a42"
+  ],
+  "job": "26177922.pbs101",
+  "model": "glm-image",
+  "phase": "all",
+  "source_sha256": {
+    "scripts/aspire_parallel_protocol.pbs": "27407257ae6e675800ffef39cf833daf35c5bee92da4fda6217e300826cc8579",
+    "scripts/aspire_protocol.pbs": "05307cb1d2c9313f2e8b3ef6242a745232dc197d435e71116250da1b3420c7a0",
+    "src/visual_synthesis/aspire_parallel.py": "7132f83add89ed48b88d1d1da22cecb2ff6c58674ca1f9e7c65e0a3d43e10091"
+  },
+  "status": "failed",
+  "tasks": {
+    "e1": {
+      "gpu": "GPU-8ee1fe87-add3-5f25-0886-d4e1e0cbfd1e",
+      "status": "running"
+    },
+    "e4": {
+      "gpu": "GPU-41122c3b-243f-807c-83ff-47e1d32fe1cb",
+      "status": "complete"
+    },
+    "e5-ablation-random:0-0.5": {
+      "gpu": "GPU-b2528548-0d88-4d95-963c-405ca5de116f",
+      "status": "running"
+    },
+    "e5-ablation-safety-0.5": {
+      "gpu": "GPU-341a8e37-e6cb-3050-a1d8-d26963c49a42",
+      "status": "running"
+    },
+    "e5-ablation-safety-1.0": {
+      "gpu": "GPU-41122c3b-243f-807c-83ff-47e1d32fe1cb",
+      "status": "running"
+    },
+    "e7": {
+      "gpu": "GPU-b2528548-0d88-4d95-963c-405ca5de116f",
+      "status": "complete"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+#!/bin/bash
+#PBS -N vs-glm-parallel
+#PBS -q normal
+#PBS -l select=1:ngpus=4:ncpus=64:mem=440GB
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o logs/aspire/
+# Submit from the repository root. Override resources and VS_PROTOCOL_GPUS for staged jobs.
+set -Eeuo pipefail
+ulimit -c 0
+: "${PBS_JOBID:?Submit this file with qsub}"
+export PATH="${PBS_O_PATH:-$PATH}"
+cd "${PBS_O_WORKDIR:?Submit from the repository root}"
+py=${VS_ASPIRE_PYTHON:-$HOME/.conda/envs/visual-safety/bin/python}
+export VS_ASPIRE_PYTHON="$py"
+export PATH="${py%/*}:$PATH" PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 PYTHONOPTIMIZE=0
+export VS_PROTOCOL_MODEL=${VS_PROTOCOL_MODEL:-glm-image}
+export VS_PROTOCOL_GPUS=${VS_PROTOCOL_GPUS:-4}
+export VS_PROTOCOL_PHASE=${VS_PROTOCOL_PHASE:-all}
+# Each external worker sees one assigned GPU and at most sixteen CPU threads.
+export OMP_NUM_THREADS=16 MKL_NUM_THREADS=16 TOKENIZERS_PARALLELISM=false
+export HF_HUB_DISABLE_XET=1 VS_SEED=42
+exec "$py" -u -m visual_synthesis.aspire_parallel

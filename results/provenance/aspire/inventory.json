@@ -1,0 +1,1282 @@
+{
+  "collected_at_utc": "2026-11-11T11:13:30.712687+00:00",
+  "host": "asp2a-login-ntu02",
+  "root": "/scratch/users/ntu/swarangi/visual-synthesis",
+  "report_commit": "4ab94eaca376e6ad81f77baa1578b07f11c67b3c",
+  "e3_sha256": {
+    "pixart-sigma": "4db9e360e0d20b6e78eb600cf8165758026e13ac2fc1f7ec20891e3a3ca31db1",
+    "flux-dev": "664a7f874344addb10bb1a9fdebc367c2156b59a046bdae88049ef6b7f34d915",
+    "qwen-image": "2f15ca49ede433a68854d836d4faf015b23e0177a60ff37081ea3acec6a900c9",
+    "glm-image": "600803b0dd9a63cc889ef613e0850af91ac324c39e655eaaed8046590c2484d6"
+  },
+  "source_sha256": {
+    "scripts/aspire_parallel_protocol.pbs": "27407257ae6e675800ffef39cf833daf35c5bee92da4fda6217e300826cc8579",
+    "scripts/aspire_protocol.pbs": "05307cb1d2c9313f2e8b3ef6242a745232dc197d435e71116250da1b3420c7a0",
+    "src/visual_synthesis/aspire_parallel.py": "6280b95c29cf167ebde0b98f4babe46e87626e235dd3e164a2dc5a8425148e13"
+  },
+  "copied": [
+    {
+      "source": "data/runs/s05_generate/e1-pixart-sigma/_run_manifest.json",
+      "export": "manifests/s05_generate/e1-pixart-sigma/_run_manifest.json",
+      "sha256": "97077db78b9b266e7b2f94f65372d056fce373bd4fd861715e4359b9684b8ca8"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-pixart-sigma-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-pixart-sigma-nudenet/_run_manifest.json",
+      "sha256": "49292713c348edc9c30fdcca2cd4295793b65fb56c0a8f6f7968e488f0d5b73f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-pixart-sigma-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-pixart-sigma-laion/_run_manifest.json",
+      "sha256": "6a54fb88ecc621e38d6aa50101d893f7a78eba34d032667fc4e7f68aa06fe70a"
+    },
+    {
+      "source": "data/runs/s07_metrics/e1-pixart-sigma/_run_manifest.json",
+      "export": "manifests/s07_metrics/e1-pixart-sigma/_run_manifest.json",
+      "sha256": "240eb4444a489784815553e203537407a6bc9d44526dfb45b8ecfec68d9ce836"
+    },
+    {
+      "source": "data/runs/s05_generate/e7-pixart-sigma/_run_manifest.json",
+      "export": "manifests/s05_generate/e7-pixart-sigma/_run_manifest.json",
+      "sha256": "ec53ed7e3929822a61dc2e6eb56d78493624812c41015288fa2ac9da9615a875"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-pixart-sigma-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-pixart-sigma-nudenet/_run_manifest.json",
+      "sha256": "b23db20e7416c376fd7582909ca888ac151f7d393479a575234282600b9399ec"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-pixart-sigma-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-pixart-sigma-laion/_run_manifest.json",
+      "sha256": "7292d1568a0bdd7cc379beaf56de1893371e779eb644f61e57edbbfdbfb2b6a7"
+    },
+    {
+      "source": "data/runs/s07_metrics/e7-pixart-sigma/_run_manifest.json",
+      "export": "manifests/s07_metrics/e7-pixart-sigma/_run_manifest.json",
+      "sha256": "8198a809fa35877c648957931a289d7a270277721367131d12a5704e82a22fb2"
+    },
+    {
+      "source": "data/runs/s05_generate/e4-pixart-sigma-capture/_run_manifest.json",
+      "export": "manifests/s05_generate/e4-pixart-sigma-capture/_run_manifest.json",
+      "sha256": "0325c70c8651777d5ff9e8f75633653fff00f4a377216b5e6042f7cec137dd90"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-pixart-sigma-capture-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-pixart-sigma-capture-nudenet/_run_manifest.json",
+      "sha256": "8c5f7937e4b2afbbbe9b3e9ac29dc4e7cc65b6721dbf3c0ccd7bbba8cad82469"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-pixart-sigma-capture-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-pixart-sigma-capture-laion/_run_manifest.json",
+      "sha256": "74a3020433e4d3d9076ff1857e0c3b08dd5116c203062907e7771a636067c3af"
+    },
+    {
+      "source": "data/runs/s07_metrics/e4-pixart-sigma-capture/_run_manifest.json",
+      "export": "manifests/s07_metrics/e4-pixart-sigma-capture/_run_manifest.json",
+      "sha256": "59636bf0a90f622ab75d30f26a5b238f5b70ca6d2b120146c620decd80fc3803"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "7717638cacf670d7de2bdd050c4721e90411fb760284ae947b5737da23aa464e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "a5c67be2def32968e236c62b609390f5ddd291504e55be27d6cf374a1879278c"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "37544b39b0a8f513f1a7564c5926303423ef636356647d7c330f191fb6bcbe9f"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "b74f93f00839e0e8f70a1e83f15707addc24b0d72dce9ce5bb2c1b08e85bd17e"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "47144145db964ed71c92056462e0b0d330046e3d4f1f7773fb3c4d3b82f6172f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "cfd4fb5d39ee00bec601bdbec0f5e9ef0bdc8735bd6b3c98d429356f699e797d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "37f046408a59dac4880bc4065c9fa4b2fbb4e491eb9bfe24f3d6ddbab99f2c5c"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "9c21be85b5eeefc96affad4507a8bda4d5f2f851b7d9e21d1dd391eb64905bfc"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "8bea771556e0d2d0b5c19c0d9671af0aa101fdd6bb8f08521f5b343eadaaddb3"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "e8ccc7c6d5f4e3148767245c1717a3115a49fe818e360a88fd92345279394d93"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "af38edeed65c77ed4cc97603ce75d86b435596b22e60e446efb5f051472c91ee"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "3fc84ffcd2143f73e089cb808c2889e49591ac1521adaef1aebbcbcf81fe1b65"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "08d95bdde42bf822641db72c012bf27e4ae9f342850fd3d8dce68bbce24ccd25"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "a52a5169693166fac66af3bddedc9ae3ade62225ab325417c2994e8443f75293"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-ablation-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-ablation-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "e63563983918c129b70421a4d2ec2f83b0794c564d89b5bab00eb92f891b29f3"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "4345c7886ec878f3362ae3c1037cf2fd560e05c6403d43498d2be9bd2a0401e0"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "00db416a65ed173f220310ebbec8afc032c62a7fea8d5afcc4ff3fcc86d1100c"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "88723fc64d1e8bd64efeb01b6b4fec0b1bbac7a706095108f9ec0615282fb999"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "bbed82efec0395a433ba50bb16ed7d2faadcc6a95dab16fe5d0de6d37eec4e1b"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "a50a06f1732178e26c218e70138a8c9fa3d150fcfff568b35a28a8bf02e2ecd8"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "a368f46b431f82c1e653de746132f00e762b1f888892d5f44bffa7beda6652f1"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "daedba56434821c3b6da6d866ce3adb15707cfc3894730344288630d530cff86"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "116c28ad2118f168c2820741787305e490b952689321e27654c716b1d816529c"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "a850f587f1362925a7702a96a27849ccd614aecbacaae13960aeac2b9c251368"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "2dc67dc58bf0054fa2b52339d31e5b880aa130aac0f5b7798bf2cb90fa838eff"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "41d97d1ff4ff909862403c1e2e412ee433430c14602f833e5fbd6a8a3d145521"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "17fd64677133f2006406e4a066cd224af1e8c7f1e2411a1cfdcbf74ea120cdfc"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "e4f504dfd84ba048f5649a60b4fbaa1fbfa524fb18ef461115f0c4c92376332e"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-pixart-sigma-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-pixart-sigma-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "1bf09598a7940cebda55bc1d27f0523bf4797a84719669bf23b4bd0eead013e8"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "7c4fe7e7a5fce560ac8d9c852fe66de4448c9d80c56c3f59feb8fc68e43d4e93"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-pixart-sigma-steering-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-pixart-sigma-steering-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "c33510c9c68c7b49cad762087064b24350c47bbf0193e51a1729c8ddec22ffb7"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-pixart-sigma-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-pixart-sigma-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "5e35d1f2c9df9ed662005711f578a32745ce38e8b2e9ccaf69dabe48e1d9f591"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-pixart-sigma-ablation-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-pixart-sigma-ablation-safety-a0.25/_run_manifest.json",
+      "sha256": "3ed6d01294dc6bde3335fb90a0acb756877208845c371a875b70ab70bb6790e9"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.25-nudenet/_run_manifest.json",
+      "sha256": "1152f8dbca7ffffe116becbf37c77cb0744a13545a9e847be317429203175434"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.25-laion/_run_manifest.json",
+      "sha256": "7e482bc6de101e0b631c6f11bd90673e175fcf80675c116da82fa2cc789bf77e"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-pixart-sigma-ablation-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-pixart-sigma-ablation-safety-a0.25/_run_manifest.json",
+      "sha256": "54b07ae73063e050f98ea9fd28acc1a2b8a0e6a189c9dc8570fa2923134f4a58"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-pixart-sigma-ablation-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-pixart-sigma-ablation-safety-a0.75/_run_manifest.json",
+      "sha256": "22a37afb98ea377d49ca48a03ad7cdce97a82885d340d597920c16d9c2d3215e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.75-nudenet/_run_manifest.json",
+      "sha256": "4cbf7944b0edc107ebf5e6653e3525c97b7931c6a6b896029eec5347f5900baf"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-safety-a0.75-laion/_run_manifest.json",
+      "sha256": "79c51518a70df0b4458363c773dc414d6af0c1e97436c79749352a3de111d05d"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-pixart-sigma-ablation-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-pixart-sigma-ablation-safety-a0.75/_run_manifest.json",
+      "sha256": "6f4c87c6e2f1fb711b183ac3b5f4270e4672e2530aa58c56bb54b7faf9c082b0"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-pixart-sigma-ablation-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-pixart-sigma-ablation-random0-a0.25/_run_manifest.json",
+      "sha256": "8190b2a9f88905557089b5e578fd25c09d7ff7897b799e5eb70a644d3f6deb88"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.25-nudenet/_run_manifest.json",
+      "sha256": "ecd44dc1e383e0b064983a375c3cd48df0ff7f107af6a17eaeb1b7972e4dcf44"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.25-laion/_run_manifest.json",
+      "sha256": "afaea1d4bf838981ccd6b9b167bd6293f40a26a37cae8994d7dc15fd810779d1"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-pixart-sigma-ablation-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-pixart-sigma-ablation-random0-a0.25/_run_manifest.json",
+      "sha256": "a931ba87dcb9852b5ac8b2379466dd4925d5d30ddab1a19084c1b59eb01fb8ec"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-pixart-sigma-ablation-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-pixart-sigma-ablation-random0-a0.75/_run_manifest.json",
+      "sha256": "928e7fd0b25955da7b1f6048d8de9e2b6002dbbb402a5d7d1ce425253574bb53"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.75-nudenet/_run_manifest.json",
+      "sha256": "45dcb53a71f76cefe10848105cc612ac6e334c6265a73105d7969b246bf86826"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-pixart-sigma-ablation-random0-a0.75-laion/_run_manifest.json",
+      "sha256": "21854b50dcff156d8b4543d7cc697d0de8deafdac2b0cfe9cc96c713acb9a118"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-pixart-sigma-ablation-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-pixart-sigma-ablation-random0-a0.75/_run_manifest.json",
+      "sha256": "e85d664ab4f243c45034441e3e62b6dec15db70dc601adf40dcd6c4251c226ad"
+    },
+    {
+      "source": "data/runs/s05_generate/e1-flux-dev/_run_manifest.json",
+      "export": "manifests/s05_generate/e1-flux-dev/_run_manifest.json",
+      "sha256": "7d376f420873d080477cf441194a0159dcc98d3ed9225b817825e602e318a98e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-flux-dev-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-flux-dev-nudenet/_run_manifest.json",
+      "sha256": "4d898281b801f0a9c7f5bb2f1b243a9e436b1d1053ff09113963db5040d857b0"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-flux-dev-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-flux-dev-laion/_run_manifest.json",
+      "sha256": "67ac111c4ab82dfc858d323399a6c79407d608299db6709bea17a31a44ef5a38"
+    },
+    {
+      "source": "data/runs/s07_metrics/e1-flux-dev/_run_manifest.json",
+      "export": "manifests/s07_metrics/e1-flux-dev/_run_manifest.json",
+      "sha256": "e4bf610c5e2f286da4ebbc35dd45d83059ec125a816744d813c3be9a06f621ab"
+    },
+    {
+      "source": "data/runs/s05_generate/e7-flux-dev/_run_manifest.json",
+      "export": "manifests/s05_generate/e7-flux-dev/_run_manifest.json",
+      "sha256": "0604d51d35c959a54d179c7744ba8f860abbe37b018245a29c1967ea7222e543"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-flux-dev-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-flux-dev-nudenet/_run_manifest.json",
+      "sha256": "4da33f4585bb5d0b9da28f18db1ae8a071e139c5b1644bfac708d34e208cc834"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-flux-dev-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-flux-dev-laion/_run_manifest.json",
+      "sha256": "4850b386fe4d9665f1128326e84bf0af6f7688e092b0361526ef80a4f864cdce"
+    },
+    {
+      "source": "data/runs/s07_metrics/e7-flux-dev/_run_manifest.json",
+      "export": "manifests/s07_metrics/e7-flux-dev/_run_manifest.json",
+      "sha256": "f69754bf8a80308a8517330d59f5229ae18b7b2f0b0876a77e33a61765210e92"
+    },
+    {
+      "source": "data/runs/s05_generate/e4-flux-dev-capture/_run_manifest.json",
+      "export": "manifests/s05_generate/e4-flux-dev-capture/_run_manifest.json",
+      "sha256": "ef6c393f5b11590153637d2937054912c5f1aa9f176d3261d9dbfb2154c7c2b2"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-flux-dev-capture-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-flux-dev-capture-nudenet/_run_manifest.json",
+      "sha256": "03272c49d8694a4a32a261bbba1df53d09f33b069ff41156a12987c9a3fd714c"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-flux-dev-capture-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-flux-dev-capture-laion/_run_manifest.json",
+      "sha256": "ffb299ab543de9ae711426655113df13e01f6fcc32dd7c53ad70320224251bff"
+    },
+    {
+      "source": "data/runs/s07_metrics/e4-flux-dev-capture/_run_manifest.json",
+      "export": "manifests/s07_metrics/e4-flux-dev-capture/_run_manifest.json",
+      "sha256": "bddced167302506ed5a19fe68a8414334ebad7266cc39d259a5d15ef08812e4f"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "4f3f5cc3d5e575258fe28f65379175351f40d9959a9a15e5ef12e763f8ced0fc"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "80190ecc2f2fc0cbb9e5cedc1fc2741950c663cadcb341cc7259256ec78a2258"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "fcbff3bbf1caf733de0296d6e76abac17af3ae5e10bbe6b73ef5f232e871c9fc"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "da9e0415ac605a0352218ea4b65eb4d68d390f38ac1bc2ae09525b0f33522ad8"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "7840ba54ee3e6789c3987ad702f07c607919000fbc2d3feca337936a06180395"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "97bd374f23e78d527984c1e20218ff9304bd0f5cff09aec7e7f3820fbd1972ef"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "1b3553571868d16706824e5cc72847a2270971d77641337a1c76291f9f8606fd"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "b64531fe20c96ddd230a7a5194b20849074009ffbb083699f07da70d9b283430"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "47d36c7086877949b29db49ebe6b8162c0d768ea30f6afbdc881e69b0f7b9a3f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "eccda77586f858643b8b20be522b63ff1635a5fee0d88ee4f877d8bc47b5f838"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "e8b1881c2dd4754f7dbfcc9e79dda64e8784b4cd39948ea9eac93b144bb2b607"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "6db4feeb833d89dfbc3bae9dba48e6411bc40a3fa24473a99aeb35594b2be3b1"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "dc37160aa90fc6b99638e8fb26ce1155c611a5d7f5203b0118842ec6fd2bff42"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "f3d32b01f1a25c4810d9299d6ce198426577b38b2b5aeb1abccf9259f7c2be24"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-ablation-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-ablation-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "7901a6a27df602dbdad9d1cfac5cdffa7e24a4484eb8ffa832e351db71c0b3e7"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "f7b49cfc5f336e2135f7b26ee50231535a1320c16af7d1fc4c2c3c24031788ab"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "e27c257e10f21fab639482b01d68a724011c427543bff49b4da2db47bea079ac"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "87b1efaa2e221af44f48ca1fcb56c60a00710fb9f678e894702d5ef82fcd1a68"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "3a078f0c7d4be24ccd7144ad377e5cbc5a989276f3bd4adb090b927911d82652"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "208126b1f8ca7348b83d43f3288fd4d0216af5114837f4bcc7e36eac97ce1bf1"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "7f0e67ef0266780d0b106e96f9388a38a57253d27c6cd4b14ff86163309928b3"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "2c92e5ad09290f8124023fd17616d5b1ce350049fad702ea9ddfa40514ad742c"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "d030aa90cde63ce76dd27fad85d65060adf6ef13917af8f92352489ac7c336d4"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "dc58d66327520da8e7afbc95fadd037a072dd81ca6cad0562a6604cb7fa95827"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "68322ad090289451e9d6e0f0404fb6ade64afc4df59f6769e982fc72cbf028c6"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "0175398467202eea10d0d5ea57a6dd3efe2c720ef3eb96f73968186c173a4831"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "ee7e904e2b6568705f038a0fd9b1bb326d4dc445a2b9963046329e550580c46d"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "8561e4c1fd39bdb2aaeb5eef9a1638bce82f7e3921b4f069ee202993ed2a833f"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-flux-dev-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-flux-dev-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "1bf729408b94f25a1e00e00d592f72d3bb66be645c85f6f433bfa991921db2cc"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "07a64240db1edc463bba74988c998f0f11289282b180cf102628d6f81702f388"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-flux-dev-steering-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-flux-dev-steering-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "ae4636f680c8564e9faf9d418beaaaaff59de239f61be26169e344ce04c562a8"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-flux-dev-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-flux-dev-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "97e3cc2a4562a3e49f3ecfecf29af8b457c0f748e1aaa0b9a9c01381aac0c22f"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-flux-dev-ablation-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-flux-dev-ablation-safety-a0.25/_run_manifest.json",
+      "sha256": "7aa6ac35c1e9f496c8976532bec666a7799f23e9098b3ca378f7b02ec2caee68"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-safety-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-safety-a0.25-nudenet/_run_manifest.json",
+      "sha256": "4fa8e29ef045812b0710763d2049415178b36afb9dae9b4510a0c02f2bb89d80"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-safety-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-safety-a0.25-laion/_run_manifest.json",
+      "sha256": "396daf9967410ff915e2c07a8fd042bc47e145c4d34a1079a79502baa8cdce67"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-flux-dev-ablation-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-flux-dev-ablation-safety-a0.25/_run_manifest.json",
+      "sha256": "a64f4fa7a85dd89428cf12f0d0aa7e94569eb60c223f5ce08c81ec35f9b0122e"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-flux-dev-ablation-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-flux-dev-ablation-safety-a0.75/_run_manifest.json",
+      "sha256": "e371456b06155c31d077304869bd6fd6b8bc34860847157118081314959dbf21"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-safety-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-safety-a0.75-nudenet/_run_manifest.json",
+      "sha256": "e7eaea05c79a4ebc5b1d0a881ba53b2f371212f75304b3a2afbb310806c95ec3"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-safety-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-safety-a0.75-laion/_run_manifest.json",
+      "sha256": "5daa4c96d5f57157dda6244972c40629c4c9d361fd4f687096085698672857fe"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-flux-dev-ablation-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-flux-dev-ablation-safety-a0.75/_run_manifest.json",
+      "sha256": "03bdb26aa27c002ac912e17e519663e8b784ead91f218379505c8d300cf9bbc2"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-flux-dev-ablation-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-flux-dev-ablation-random0-a0.25/_run_manifest.json",
+      "sha256": "240daa46e1cdbec9bd5ba086f7b5796df381f97d658775841a6368625e99e013"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-random0-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-random0-a0.25-nudenet/_run_manifest.json",
+      "sha256": "28293996d8b0bcbd40d886e975163cd1a774ee775bfa4c04f9d9d725a824f2a5"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-random0-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-random0-a0.25-laion/_run_manifest.json",
+      "sha256": "3f3631b6c78894cbc72534ce95106765a09abe07e76d410b4d84a8cef545de37"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-flux-dev-ablation-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-flux-dev-ablation-random0-a0.25/_run_manifest.json",
+      "sha256": "d1cd743597f58d67ca787d57dc24e5adb08e10587a2b1f8cf57c788512325b15"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-flux-dev-ablation-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-flux-dev-ablation-random0-a0.75/_run_manifest.json",
+      "sha256": "dec8633d609a44eb93e76ef1a4b74663fa20bbde87455f703ff7abda3a7db41d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-random0-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-random0-a0.75-nudenet/_run_manifest.json",
+      "sha256": "e04c91de577bdd7bd5af6625a780defc9d3f2a3ec8308ecd210f1a961884e08d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-flux-dev-ablation-random0-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-flux-dev-ablation-random0-a0.75-laion/_run_manifest.json",
+      "sha256": "fc8d79eddba698a9f47eadb622a099c9dfdf67f89243c6ca6271fcb703ea906c"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-flux-dev-ablation-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-flux-dev-ablation-random0-a0.75/_run_manifest.json",
+      "sha256": "826e2ab7fbcc6c3ea308ec3e4b5dc5622a41ab31a0fae96f70bbf4f475f8568d"
+    },
+    {
+      "source": "data/runs/s05_generate/e1-qwen-image/_run_manifest.json",
+      "export": "manifests/s05_generate/e1-qwen-image/_run_manifest.json",
+      "sha256": "8cb7b9d555ebfd0aff752ccb2fe3d04a1441e1e49eca263962ea4409d2e75acc"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-qwen-image-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-qwen-image-nudenet/_run_manifest.json",
+      "sha256": "df939d2fab1c731ac0e95424f386b398452d01b1b39b9ad1f9b13b3c34f8b962"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-qwen-image-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-qwen-image-laion/_run_manifest.json",
+      "sha256": "13fee02945b9b77a02afe53068beba13963114cdbd5044c0141f93a3bf72752f"
+    },
+    {
+      "source": "data/runs/s07_metrics/e1-qwen-image/_run_manifest.json",
+      "export": "manifests/s07_metrics/e1-qwen-image/_run_manifest.json",
+      "sha256": "ed5663a9383ae20ecb715b69cf80280b7bb15941d34f45faad0f2df7f45efb88"
+    },
+    {
+      "source": "data/runs/s05_generate/e7-qwen-image/_run_manifest.json",
+      "export": "manifests/s05_generate/e7-qwen-image/_run_manifest.json",
+      "sha256": "10627d54c5024b3d818d510edb22cb38ba4bbab19d6ef6f2d65226ef476c6755"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-qwen-image-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-qwen-image-nudenet/_run_manifest.json",
+      "sha256": "358bfad8a526725c2a60de502087e2b454770d11453a35e2199232d1ebe96791"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-qwen-image-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-qwen-image-laion/_run_manifest.json",
+      "sha256": "6745482f96423de0b30fabcbe75cfc8a9076b8f472288e5a8c0b15f59c9ea096"
+    },
+    {
+      "source": "data/runs/s07_metrics/e7-qwen-image/_run_manifest.json",
+      "export": "manifests/s07_metrics/e7-qwen-image/_run_manifest.json",
+      "sha256": "27d030507ff2224952aaec859d75c3e14f64e2ef3a6a3535b2525e45d13ea8de"
+    },
+    {
+      "source": "data/runs/s05_generate/e4-qwen-image-capture/_run_manifest.json",
+      "export": "manifests/s05_generate/e4-qwen-image-capture/_run_manifest.json",
+      "sha256": "1fc9c23dda93cb0ad577c8ab290fe848921ec0c49471841d33b082e72fe050af"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-qwen-image-capture-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-qwen-image-capture-nudenet/_run_manifest.json",
+      "sha256": "44fa98a70583e00ffc08edd64377907acead34d70cb1b73cf46ba7d151383404"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-qwen-image-capture-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-qwen-image-capture-laion/_run_manifest.json",
+      "sha256": "c6e3b62ce171b476f05a80daabf6e74604fb48b994717068aebfd90cf1c2078f"
+    },
+    {
+      "source": "data/runs/s07_metrics/e4-qwen-image-capture/_run_manifest.json",
+      "export": "manifests/s07_metrics/e4-qwen-image-capture/_run_manifest.json",
+      "sha256": "3fb0c42ee9b55a6a917236468506e9f377cf3ab9b95189cc9c2f5d01c5fc85bb"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "48b89ad4fbd4ae8979bcf85ccb584e0e54c8d43d01d3976f2ab75abac4cf370d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "462e3a0015675847a0e0f479782a2c7c6df2fdee0c24251ceee7e74974865973"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "414c0502296251e3843df52fee6280d24340f22ef010b3035f2af2901eaae353"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "753c4e2ec8d173f722436910b7994f9fbed8b07ff1fc0034d94fcb312c60c6cc"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "4ff52befb7944dcc736374daa6e749af94efe1554c5e912dcfb6f0a223988237"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "156df78fbb10685152755cb1c5b5b92fd40e2c74a5431b0bd16bb82255f880cf"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "994b55c49e2f584866a8f798957151260c3f88f68d27b218ec445b482d09152c"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "adc2d1f3ef1a66212c6413e979887d1bbae74e64bb7c8676a5522ababc9bb2ed"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "5d58ad87ec0083f3f29a1bc932309bc73513cdb1ca929b43e8f5c06f223f847e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "3c2a865ef6fa2d03b396b826fb0c9cd6de75633ff0ca9a7f69526c5b6715975a"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "160619581203e7497e51aae6ef27ecebbb9907e777105efadd5626e832f154db"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "fa6f2f63d00755e02778b440a29328b6eb38dccb27bd8ff64bb3b03508362a81"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "46ce074daafc4454cc9873d5507a034887ef3c6c55889b02964f67cf92894fb8"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "fd746880c8b4bed7410e7c0a6eb694bbb1baeff99cf06e52dfc6fa1de5793860"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-ablation-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-ablation-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "2fc498608fa9f7dd81f48a63a002d2afe5362319fa678c66bc3fee47a1c6269f"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "dd47457b50d019e170e9498b4f497401ee8f4761e53b5cf95110c49b6076665a"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "1124b805bc154b59f2ff68c215bc2748d5727872bc7d06d0f5f29c166bd911cf"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "bf8f9adf58fb62ea7aeb631ea07462f9f23ae4cb7bf808d0914c1651d9c30ffb"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "bd52884fdce038e9f5c31b045459d19ddcf442e9013e893236dbace3bae0e86b"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "107a460f0c36d613d096e33f6db85ecca2ede104b051b2b3b7d0305d02957bf8"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "c89b0726139103b2a8414e7a82be7091b76f1db9d34677e1a6a98ab653ebbc88"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "7071e9a31c008085d8365a99acb426ff569d7b90e6ddbde9e01b306a9feccd22"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "3985c6f017fb3f54025a0f3a3a01dff19c8952f0fe976c5628528787e1d551e6"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "fa25a02cb579206ed746abb150abf30f14fb6fbea8a376247d436b53bace856c"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "47514bba90ebd6cdfbfeb57ef9667df499d752fd5a98417e7823ef7f4523b28d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "00fb1b1447d27ab5921494acd1e437882224d98c2dbd42f3325139c301e6141c"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "c85c21fe33d6b0842d94fae198ed69cb9f4188ec8c1df976ec10d3bb2079f818"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "0477065909cf4aaedbe3747c8f4872aec231d47c75db31021a28685ba7d4cd17"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-qwen-image-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-qwen-image-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "bcd0b21f816a9d3079dd2af777d783ed4b37e69c65506bbab97d4ce620198677"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "18b7535c50a1db25db9acdf67d3703cf6b73ca2ffb83fae031a79cd4034f2526"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-qwen-image-steering-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-qwen-image-steering-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "bbbc719dea9976415130adab9964012d737439b8449dfa1d220c26fc53fcdc29"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-qwen-image-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-qwen-image-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "79e294163a5bd1127dbe504973af30ace6cc38974791eba2651a00718ed3528b"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-qwen-image-steering-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-qwen-image-steering-safety-a0.25/_run_manifest.json",
+      "sha256": "2d54b633db36da736c57c3b1c978b161df3a1edc660003eca3410128416d4598"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-safety-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-safety-a0.25-nudenet/_run_manifest.json",
+      "sha256": "6b94490658f0a072c571be3bf708dd5261e1054523f42cac5ae44e2960105984"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-safety-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-safety-a0.25-laion/_run_manifest.json",
+      "sha256": "357c7028cb8ff23d5302c219eb87de8b344ab921eb180fb883f628b1355389d1"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-qwen-image-steering-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-qwen-image-steering-safety-a0.25/_run_manifest.json",
+      "sha256": "d64004967c63a3f4124daa2ec3253c3ddedca86940daaaa04a7da0eebe8f606c"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-qwen-image-steering-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-qwen-image-steering-safety-a0.75/_run_manifest.json",
+      "sha256": "67e5a5ccecab507c1179f35f70d135af9895c1f24024cdeaf6bb5d1492ff67eb"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-safety-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-safety-a0.75-nudenet/_run_manifest.json",
+      "sha256": "64b0001d739056cf2e0eb82c0affd03b04e91d85f0f2ca12f66014fcd164214a"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-safety-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-safety-a0.75-laion/_run_manifest.json",
+      "sha256": "f8670fc6a3fe375e07c4dd7517d505fd2ad5df988fbdaf04356c8d8516d03e22"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-qwen-image-steering-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-qwen-image-steering-safety-a0.75/_run_manifest.json",
+      "sha256": "cfb394c855182de6aed633f75b61a4dcdc5cfbe3fe69a044a3f6e08082db6afd"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-qwen-image-steering-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-qwen-image-steering-random0-a0.25/_run_manifest.json",
+      "sha256": "001356bba1d45adfdf9926da4cfcca86d25c47a50ad5615ea223849fa9ffe006"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-random0-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-random0-a0.25-nudenet/_run_manifest.json",
+      "sha256": "3126aeb982ac403a0e92ac26481a2466436fb188132e8455109a894b353529b9"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-random0-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-random0-a0.25-laion/_run_manifest.json",
+      "sha256": "b32d9b0fa1d67b609430cd69c0687bceee45cd8ff89163d035a1b086e1d296cf"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-qwen-image-steering-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-qwen-image-steering-random0-a0.25/_run_manifest.json",
+      "sha256": "5a5be2134fd83b81ac3b68f44f5dee3b619b47f5a1937b2ea919a0bd1cd528b8"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-qwen-image-steering-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-qwen-image-steering-random0-a0.75/_run_manifest.json",
+      "sha256": "f1d149c04869eb774bd71daa72d0d39edee555cbb17504f711461d44f7cb6fd0"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-random0-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-random0-a0.75-nudenet/_run_manifest.json",
+      "sha256": "967184d89ec224d835ae162c3a7ab17e29f3974dbdf2d9eb2dd9e4344483d5ce"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-qwen-image-steering-random0-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-qwen-image-steering-random0-a0.75-laion/_run_manifest.json",
+      "sha256": "a0153104a9f92af2022884adfb004c0f01c10542183ac5cc736b87e4623fdf18"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-qwen-image-steering-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-qwen-image-steering-random0-a0.75/_run_manifest.json",
+      "sha256": "f12067435d14284e4fa1563c74109ea9aed92f1b54fc7c91088fdaa7e7361bc4"
+    },
+    {
+      "source": "data/runs/s05_generate/e1-glm-image/_run_manifest.json",
+      "export": "manifests/s05_generate/e1-glm-image/_run_manifest.json",
+      "sha256": "4667db5b38b5626ab97ae519fcf1d2fd72c355944b91a05c27c5834f29a946ab"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-glm-image-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-glm-image-nudenet/_run_manifest.json",
+      "sha256": "21f6cbff8ad946383a3230603f1e2c97b7c1664f788052f39ed8717e9df24f4b"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e1-glm-image-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e1-glm-image-laion/_run_manifest.json",
+      "sha256": "5985bb299069175a2e43a0d2e85748c7857d7013c2359a5fc487a3c734991fff"
+    },
+    {
+      "source": "data/runs/s07_metrics/e1-glm-image/_run_manifest.json",
+      "export": "manifests/s07_metrics/e1-glm-image/_run_manifest.json",
+      "sha256": "b2727ab9323413e02b3ed06f5bcd479b87bb33456f391bc0a34ef6ad26d57076"
+    },
+    {
+      "source": "data/runs/s05_generate/e7-glm-image/_run_manifest.json",
+      "export": "manifests/s05_generate/e7-glm-image/_run_manifest.json",
+      "sha256": "2dffaf4c9800240338d7a109c4def539009caac2329bb2ebc3eab9863fe95ead"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-glm-image-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-glm-image-nudenet/_run_manifest.json",
+      "sha256": "f9da60ef71e36c02546f6fb9c71227314116c656109d2305074da666c608e68e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e7-glm-image-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e7-glm-image-laion/_run_manifest.json",
+      "sha256": "9d6fc3c5b4252b9dcfa9417efc1fc7612fce81b5ee5a10fb56e9ee42813fa5a8"
+    },
+    {
+      "source": "data/runs/s07_metrics/e7-glm-image/_run_manifest.json",
+      "export": "manifests/s07_metrics/e7-glm-image/_run_manifest.json",
+      "sha256": "15a63009d57ef03bde2d0a49617336078da2e9f716a7ff8e99df78237828be2c"
+    },
+    {
+      "source": "data/runs/s05_generate/e4-glm-image-capture/_run_manifest.json",
+      "export": "manifests/s05_generate/e4-glm-image-capture/_run_manifest.json",
+      "sha256": "9d1aa188a36d3928afcc823668638cd7d274008b505c0d5ea65b05906e84e54a"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-glm-image-capture-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-glm-image-capture-nudenet/_run_manifest.json",
+      "sha256": "51eb8c25bdb44646ab313c2b1bbcaebdb4cf8baf51d9ed6c88105ef8a1c80e4e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e4-glm-image-capture-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e4-glm-image-capture-laion/_run_manifest.json",
+      "sha256": "ce3f2c4b60e677f5244a9cd131daeec9af78889268dca5d0af5b521ac24e9277"
+    },
+    {
+      "source": "data/runs/s07_metrics/e4-glm-image-capture/_run_manifest.json",
+      "export": "manifests/s07_metrics/e4-glm-image-capture/_run_manifest.json",
+      "sha256": "f39f2b2b7ba780934e3b64d5add52ba0954a2e1bf6bf7e4e3cfe5c2feb1171de"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "905a1157df13228326ceec4bb93bb2b1500c712b3ff9812729f8b77357ee659b"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "08c65d97301cbc2893be6fe056a66c368f6e37c7beff2ba8c365821ba978baae"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "7d278df144df9c0a06e78a75fe52414a4f89591478ff057a1e44c7c28eabc226"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-ablation-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-ablation-safety-a0.5/_run_manifest.json",
+      "sha256": "45f45a17832f869688d7cad260c36d90208a446468b5d8e11b30e506f2808d86"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "9e5fac16aba0b09f7212cc8e2c3006dad61cc2b2080bdc1b599bc9977607c752"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "862bda52fcd56c96b3df1dd085a722b8a058450fe013d3b89aca703b6517f68d"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "7475d1f8d73ade519ce99f3b87a023d6e4b46e6f2d17b3dbabef86f5184ee390"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-ablation-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-ablation-safety-a1.0/_run_manifest.json",
+      "sha256": "54413968f699b160af44799aa0f39d75fa98a6f944042839d9c978bf4deae4c3"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "d984973e4a3616ce600487e74b2b598ddcdc6bac6d378464fdec9fd32a7694a4"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "a56245e9df7a20a175de024c073b521c68ae2e0998236ee441eb0f3e4f60e974"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "fb1ea364c4aa76cb7913aec2b9700e41976528f37b7ae7614d34a70f5db870fd"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-ablation-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-ablation-random0-a0.5/_run_manifest.json",
+      "sha256": "0bf452ae285749988f4ac6d17a09d93f83ebc92b838ecfdca3217ff514a592fb"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "8d64b20c5ce3cb9e5d714055f80e8aabd79b63907549f04286c35ba7c1cd5266"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "e5f2195d5d90785cf18fe4083239064878d5e4b4cd46ed9c602514268cd6b05f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-ablation-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-ablation-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "af3a98d6c07e18cf330153ec932f1a3a3e836f16e3e4d9d42075ac2332c497ff"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-ablation-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-ablation-random0-a1.0/_run_manifest.json",
+      "sha256": "93b4b3fe79bd76fae3a4320112914d5a0700dec331f1be71b24f4c593eb8a69d"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "116345be278f8fd70785e546ee3bfbc1ac7634cd988986666594149f881e0133"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-safety-a0.5-nudenet/_run_manifest.json",
+      "sha256": "4c6b372e857c28f0e76edeee99d30808d158387356630febdb45a39e1e733bce"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-safety-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-safety-a0.5-laion/_run_manifest.json",
+      "sha256": "b56f01a9190a7105712f35016c72ec95723b5b05fc70784b1e1f6e23721050d1"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-steering-safety-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-steering-safety-a0.5/_run_manifest.json",
+      "sha256": "9bda4f861226c6e3d447ab0224f17e906df204751ac98ec1264e1d5988a27f78"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "f8d983df8fb377739b68fb815378379e7f9c471999dc4d3ab49057e20e08f060"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-safety-a1.0-nudenet/_run_manifest.json",
+      "sha256": "de1d408dfa9197da31ee1e4a92202e7dd7e133ca82a66cd33ed73d1c4a9a4275"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-safety-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-safety-a1.0-laion/_run_manifest.json",
+      "sha256": "8029b5967eeb071dffecd3bc3d72fca24b6a5f5e4a091a77b557092b80b8efcf"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-steering-safety-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-steering-safety-a1.0/_run_manifest.json",
+      "sha256": "9ab89ce96cf4985c6278c90dfb1e65891f9885a68fa078de9653a003f9da9168"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "1b435a0ed653e698519521877a5990d77abd27d00f9d3b9faf09802c03dd254b"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-random0-a0.5-nudenet/_run_manifest.json",
+      "sha256": "4cdce2686c48134056f99118d8be4a2dce75889cba89efdb74a699dec12ecf81"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-random0-a0.5-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-random0-a0.5-laion/_run_manifest.json",
+      "sha256": "7cc65076ad91ffdf73050b252c795e7cd375caa974eedae1e5a395168d988d45"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-steering-random0-a0.5/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-steering-random0-a0.5/_run_manifest.json",
+      "sha256": "34de72a30de4502a3bd938697a6bb7292e9a70f83d45edaab93e6f4a1e8db8c2"
+    },
+    {
+      "source": "data/runs/s05_generate/e5-glm-image-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s05_generate/e5-glm-image-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "9bc1b848fe3a29b8c6371369783d4308002b9e11fd1139cac18435ebae191e63"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-random0-a1.0-nudenet/_run_manifest.json",
+      "sha256": "44abd0b505202a2dedb49cb362a3991e946872ca790403f6c60f585284cb8357"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e5-glm-image-steering-random0-a1.0-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e5-glm-image-steering-random0-a1.0-laion/_run_manifest.json",
+      "sha256": "33b206c1a0d48f347f8959457d10b8c5e61f671d2fe76a159bbbc16320ccb415"
+    },
+    {
+      "source": "data/runs/s07_metrics/e5-glm-image-steering-random0-a1.0/_run_manifest.json",
+      "export": "manifests/s07_metrics/e5-glm-image-steering-random0-a1.0/_run_manifest.json",
+      "sha256": "226fef0e62aaecf2ac47e3c33481042a3f0e7e9d14eddab5f3709f6318eaad29"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-glm-image-steering-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-glm-image-steering-safety-a0.25/_run_manifest.json",
+      "sha256": "ed530989a935d516f336c6fece2a97406508b4854c151e380a694964c5ae211f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-safety-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-safety-a0.25-nudenet/_run_manifest.json",
+      "sha256": "5ceff530a59ed061d6085a64954de1387ba5e60cb9a76638b236eaa8d7de0c97"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-safety-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-safety-a0.25-laion/_run_manifest.json",
+      "sha256": "68dd3d92740e429615092ab6a3a5eb2b4941cefa89a3e09b1d24c929b9095d9d"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-glm-image-steering-safety-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-glm-image-steering-safety-a0.25/_run_manifest.json",
+      "sha256": "ccd83f34f259a6759f73ad1bc6235254a1b15ad847487198246eeb0fd77d88b6"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-glm-image-steering-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-glm-image-steering-safety-a0.75/_run_manifest.json",
+      "sha256": "f11cab5ed30f84998a59578df97115804aa11bc953c1d297797c87e731cf387f"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-safety-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-safety-a0.75-nudenet/_run_manifest.json",
+      "sha256": "420fb4c938f05bed260566b1ada8da13a081f5ba5ac104003674880d58aff3a4"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-safety-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-safety-a0.75-laion/_run_manifest.json",
+      "sha256": "22131e42e0b1fcca8c49667306f3e710297dd2819173cd68d6f66811c36031d2"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-glm-image-steering-safety-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-glm-image-steering-safety-a0.75/_run_manifest.json",
+      "sha256": "e3c94227ccb6fea12108c173d3e0db4b9f680058de17797fa00ccbedcdb24224"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-glm-image-steering-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-glm-image-steering-random0-a0.25/_run_manifest.json",
+      "sha256": "f0a9842c89c7bf26f640fe864306956a235059a519135af5b17f8d5d65dddb1e"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-random0-a0.25-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-random0-a0.25-nudenet/_run_manifest.json",
+      "sha256": "18510591d339e8f98dbd494988321027f58b68c422def9aaa3aabcdf1a9ee143"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-random0-a0.25-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-random0-a0.25-laion/_run_manifest.json",
+      "sha256": "8d3a057e94dd36fd1920225c556b60969047535c3b4cddec86f8821696ae8f61"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-glm-image-steering-random0-a0.25/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-glm-image-steering-random0-a0.25/_run_manifest.json",
+      "sha256": "41c5606cfcff468d99d5f5d8a000462044d191e4dfd93dd9d95dbd9cba3a30b6"
+    },
+    {
+      "source": "data/runs/s05_generate/e6-glm-image-steering-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s05_generate/e6-glm-image-steering-random0-a0.75/_run_manifest.json",
+      "sha256": "bcc48cd868f7856a04cb46eae0d9c973e4d7240df87f94b41a90941a7f762ab4"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-random0-a0.75-nudenet/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-random0-a0.75-nudenet/_run_manifest.json",
+      "sha256": "bf3387a495b48319b69a95134b54bef2e0c57769aa3242b17ed208f1ad3a9994"
+    },
+    {
+      "source": "data/runs/s06_nsfw/e6-glm-image-steering-random0-a0.75-laion/_run_manifest.json",
+      "export": "manifests/s06_nsfw/e6-glm-image-steering-random0-a0.75-laion/_run_manifest.json",
+      "sha256": "45033540736149ae6dbaacc47895d6db72547888dc58e57128d082f6df02dc51"
+    },
+    {
+      "source": "data/runs/s07_metrics/e6-glm-image-steering-random0-a0.75/_run_manifest.json",
+      "export": "manifests/s07_metrics/e6-glm-image-steering-random0-a0.75/_run_manifest.json",
+      "sha256": "e63cc0459e6eec3748bf1933de6320151779e4d16e95316e183a839b44f964c9"
+    },
+    {
+      "source": "logs/aspire/26150661.pbs101.config.json",
+      "export": "jobs/26150661.pbs101.config.json",
+      "sha256": "95140ce164855b67fe4c67aa391a6ee9156b8239babffa16a03116e6ec096f29"
+    },
+    {
+      "source": "logs/aspire/26157412.pbs101.config.json",
+      "export": "jobs/26157412.pbs101.config.json",
+      "sha256": "b6063e312516080c1197474c48511e021566169300ae41d5d7c2b5d8917c4a25"
+    },
+    {
+      "source": "logs/aspire/26140582.pbs101.config.json",
+      "export": "jobs/26140582.pbs101.config.json",
+      "sha256": "2c7d6193fdc36b68787d28da3d64e534322a420806f8a2f876523d8dbb4e42de"
+    },
+    {
+      "source": "logs/aspire/26177922.pbs101.config.json",
+      "export": "jobs/26177922.pbs101.config.json",
+      "sha256": "506d69698cf72fcfbcb8fd494c9c362ad69528d078a5d98789743e43bb5a61df"
+    },
+    {
+      "source": "logs/aspire/26177922.pbs101.parallel.json",
+      "export": "jobs/26177922.pbs101.parallel.json",
+      "sha256": "b8b83daa0a17b80e8c8120b478351a4b64a3114202109a46d54c8bbdf2767e3e"
+    },
+    {
+      "source": "logs/aspire/26181497.pbs101.config.json",
+      "export": "jobs/26181497.pbs101.config.json",
+      "sha256": "506d69698cf72fcfbcb8fd494c9c362ad69528d078a5d98789743e43bb5a61df"
+    },
+    {
+      "source": "logs/aspire/26181497.pbs101.parallel.json",
+      "export": "jobs/26181497.pbs101.parallel.json",
+      "sha256": "580d10abbcb535dea7af049fa022d8224762f9a450175660dedddd63b9347e4e"
+    }
+  ],
+  "missing": [],
+  "package_lists": [
+    {
+      "source": "logs/aspire/26150661.pbs101.OU",
+      "export": "versions/26150661.pbs101-pip-freeze.txt",
+      "sha256": "7cfbc2830cfcf6b0ba3bf20ec446844d04dd4cc911ff1ad43f7ff156d5ca161e"
+    },
+    {
+      "source": "logs/aspire/26157412.pbs101.OU",
+      "export": "versions/26157412.pbs101-pip-freeze.txt",
+      "sha256": "df7a8b2d6835d580d3210d604574dc147ecf7798078694ad24673214ef662001"
+    },
+    {
+      "source": "logs/aspire/26140582.pbs101.OU",
+      "export": "versions/26140582.pbs101-pip-freeze.txt",
+      "sha256": "08ed8b186d12b22dc85c3ebc4e439472ad69dff9160179d19f871ee60b87f835"
+    },
+    {
+      "source": "logs/aspire/26177922.pbs101.tasks/readiness-0.log",
+      "export": "versions/26177922.pbs101-pip-freeze.txt",
+      "sha256": "4183a519490f43b0e77ab86a392cdcec3885df60845650a832ff488089234558"
+    },
+    {
+      "source": "logs/aspire/26181497.pbs101.tasks/readiness-0.log",
+      "export": "versions/26181497.pbs101-pip-freeze.txt",
+      "sha256": "16f8238ca32bf701575846e5f9e3f81dd007e53e974e291f6e57c3de1ab00ce0"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "analysis_exclusions_sha256": "2d24b18e78f16dab1f711cc2716415b17c3b173a4633da6b25c524ea22d682f1",
+  "e6_mode": "steering",
+  "execution": "one process per GPU; E1/E7/E4 overlap; E5 follows E4; E6 follows all E5",
+  "frozen_input_sha256": {
+    "core_v1_reduced": "558dcce8c2585ea0f1e2329681adac1a89b64c7693dcdeb40009c82199c3fe4d",
+    "e46_v1_reduced": "82fec053db40d63d4e4d2afc0dbf9047fa76acdcd204051b0999641cbc8ac370",
+    "e7_v1": "d0f0ce7b2c033eb27a0aa0224a7f571e468f00ae31d091717002a6be21ccd912"
+  },
+  "gpu_ids": [
+    "GPU-35ca8dee-25cb-f059-7e11-106857127b65",
+    "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+    "GPU-317bcbea-e97d-b949-656e-0014d9d60ba9",
+    "GPU-d609d095-f042-35d9-ab53-29c06647f016"
+  ],
+  "job": "26181497.pbs101",
+  "model": "glm-image",
+  "phase": "all",
+  "source_sha256": {
+    "scripts/aspire_parallel_protocol.pbs": "27407257ae6e675800ffef39cf833daf35c5bee92da4fda6217e300826cc8579",
+    "scripts/aspire_protocol.pbs": "05307cb1d2c9313f2e8b3ef6242a745232dc197d435e71116250da1b3420c7a0",
+    "src/visual_synthesis/aspire_parallel.py": "6280b95c29cf167ebde0b98f4babe46e87626e235dd3e164a2dc5a8425148e13"
+  },
+  "status": "success",
+  "tasks": {
+    "e1": {
+      "gpu": "GPU-35ca8dee-25cb-f059-7e11-106857127b65",
+      "status": "complete"
+    },
+    "e4": {
+      "gpu": "GPU-317bcbea-e97d-b949-656e-0014d9d60ba9",
+      "status": "skipped"
+    },
+    "e5-ablation-random:0-0.5": {
+      "gpu": "GPU-317bcbea-e97d-b949-656e-0014d9d60ba9",
+      "status": "complete"
+    },
+    "e5-ablation-random:0-1.0": {
+      "gpu": "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+      "status": "complete"
+    },
+    "e5-ablation-safety-0.5": {
+      "gpu": "GPU-d609d095-f042-35d9-ab53-29c06647f016",
+      "status": "complete"
+    },
+    "e5-ablation-safety-1.0": {
+      "gpu": "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+      "status": "skipped"
+    },
+    "e5-steering-random:0-0.5": {
+      "gpu": "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+      "status": "complete"
+    },
+    "e5-steering-random:0-1.0": {
+      "gpu": "GPU-d609d095-f042-35d9-ab53-29c06647f016",
+      "status": "complete"
+    },
+    "e5-steering-safety-0.5": {
+      "gpu": "GPU-d609d095-f042-35d9-ab53-29c06647f016",
+      "status": "complete"
+    },
+    "e5-steering-safety-1.0": {
+      "gpu": "GPU-317bcbea-e97d-b949-656e-0014d9d60ba9",
+      "status": "complete"
+    },
+    "e6-random:0-0.25": {
+      "gpu": "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+      "status": "complete"
+    },
+    "e6-random:0-0.75": {
+      "gpu": "GPU-d609d095-f042-35d9-ab53-29c06647f016",
+      "status": "complete"
+    },
+    "e6-safety-0.25": {
+      "gpu": "GPU-35ca8dee-25cb-f059-7e11-106857127b65",
+      "status": "complete"
+    },
+    "e6-safety-0.75": {
+      "gpu": "GPU-317bcbea-e97d-b949-656e-0014d9d60ba9",
+      "status": "complete"
+    },
+    "e7": {
+      "gpu": "GPU-5ed00ac5-73f7-199b-99b3-5d27c53c2fdf",
+      "status": "skipped"
+    }
+  }
+}
